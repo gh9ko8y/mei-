@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aria·念</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --font-display:'DM Serif Display','Noto Serif SC',serif;
+      --font-body:'Noto Sans SC',sans-serif;
+      --accent:#EC4899;--text-primary:#1F2937;--text-muted:#6B7280;
+      --glass:rgba(255,255,255,0.55);
+      --glass-border:rgba(255,255,255,0.35);
+    }
+    html{scroll-behavior:smooth}
+    body{
+      font-family:var(--font-body);color:var(--text-primary);
+      overflow-x:hidden;background:#FFF0F3;
+    }
+    body::-webkit-scrollbar{width:6px}
+    body::-webkit-scrollbar-track{background:transparent}
+    body::-webkit-scrollbar-thumb{background:rgba(236,72,153,0.25);border-radius:3px}
+
+    /* ===== FIXED BACKGROUND ===== */
+    #bgLayer{
+      position:fixed;inset:0;z-index:0;
+      background:linear-gradient(180deg,#FFF0F3 0%,#FCE7F3 50%,#FBCFE8 100%);
+      transition:none;
+    }
+
+    /* ===== FIXED PARTICLE LAYERS ===== */
+    .particles-fixed{
+      position:fixed;inset:0;z-index:1;pointer-events:none;
+      transition:opacity 0.9s ease;will-change:opacity;
+    }
+
+    /* ===== SCROLL PROGRESS ===== */
+    .scroll-progress{
+      position:fixed;top:0;left:0;height:3px;z-index:10001;
+      background:linear-gradient(90deg,#EC4899,#F472B6,#EC4899);
+      width:0%;transition:width 0.05s linear;
+    }
+
+    /* ===== MOUSE GLOW ===== */
+    .mouse-glow{
+      position:fixed;width:300px;height:300px;border-radius:50%;
+      pointer-events:none;z-index:50;
+      background:radial-gradient(circle,rgba(236,72,153,0.10),transparent 70%);
+      transform:translate(-50%,-50%);
+      transition:background 1s ease,opacity 0.4s ease;opacity:0;
+    }
+
+    /* ===== NAV ===== */
+    .nav{
+      position:fixed;top:3px;left:0;right:0;z-index:100;
+      transition:background 0.8s ease,box-shadow 0.4s ease;
+      background:rgba(255,240,243,0.72);
+      backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    }
+    .nav.scrolled{box-shadow:0 1px 24px rgba(0,0,0,0.05)}
+    .nav-inner{
+      max-width:1200px;margin:0 auto;padding:14px 32px;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .logo{
+      font-family:var(--font-display);font-size:26px;
+      color:var(--text-primary);text-decoration:none;letter-spacing:-0.02em;
+    }
+    .logo b{color:var(--accent);font-weight:400}
+    .nav-links{display:flex;gap:32px}
+    .nav-links a{
+      font-size:14px;font-weight:500;color:var(--text-muted);
+      text-decoration:none;transition:color 0.25s;letter-spacing:0.02em;
+    }
+    .nav-links a:hover{color:var(--accent)}
+    .hamburger{
+      display:none;background:none;border:none;cursor:pointer;
+      width:28px;height:20px;position:relative;z-index:102;
+    }
+    .hamburger span{
+      display:block;width:100%;height:2px;background:var(--text-primary);
+      border-radius:2px;position:absolute;left:0;transition:all 0.3s ease;
+    }
+    .hamburger span:nth-child(1){top:0}
+    .hamburger span:nth-child(2){top:9px}
+    .hamburger span:nth-child(3){top:18px}
+    .hamburger.active span:nth-child(1){top:9px;transform:rotate(45deg)}
+    .hamburger.active span:nth-child(2){opacity:0}
+    .hamburger.active span:nth-child(3){top:9px;transform:rotate(-45deg)}
+    .mobile-menu{
+      display:none;position:fixed;inset:0;z-index:101;
+      background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);
+      flex-direction:column;align-items:center;justify-content:center;gap:32px;
+      opacity:0;transition:opacity 0.3s;
+    }
+    .mobile-menu.open{display:flex;opacity:1}
+    .mobile-menu a{
+      font-size:22px;font-weight:500;color:var(--text-primary);
+      text-decoration:none;transition:color 0.2s;
+    }
+    .mobile-menu a:hover{color:var(--accent)}
+
+    /* ===== MAIN CONTENT ===== */
+    main{position:relative;z-index:3}
+
+    /* ===== REVEAL ===== */
+    .reveal{
+      opacity:0;transform:translateY(30px);
+      transition:opacity 0.7s cubic-bezier(.22,1,.36,1),transform 0.7s cubic-bezier(.22,1,.36,1);
+    }
+    .reveal.revealed{opacity:1;transform:translateY(0)}
+    .reveal-left{
+      opacity:0;transform:translateX(-35px);
+      transition:opacity 0.7s cubic-bezier(.22,1,.36,1),transform 0.7s cubic-bezier(.22,1,.36,1);
+    }
+    .reveal-left.revealed{opacity:1;transform:translateX(0)}
+    .reveal-right{
+      opacity:0;transform:translateX(35px);
+      transition:opacity 0.7s cubic-bezier(.22,1,.36,1),transform 0.7s cubic-bezier(.22,1,.36,1);
+    }
+    .reveal-right.revealed{opacity:1;transform:translateX(0)}
+
+    /* ===== GLASS CARD ===== */
+    .glass-card{
+      background:var(--glass);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border:1px solid var(--glass-border);border-radius:18px;
+      position:relative;overflow:hidden;
+      transition:transform 0.3s ease,box-shadow 0.3s ease;
+    }
+    .glass-card::before{
+      content:'';position:absolute;top:0;left:0;right:0;height:3px;
+      background:linear-gradient(90deg,transparent,var(--accent),transparent);
+      opacity:0;transition:opacity 0.3s ease;
+    }
+    .glass-card:hover{transform:translateY(-5px);box-shadow:0 14px 44px rgba(0,0,0,0.07)}
+    .glass-card:hover::before{opacity:1}
+
+    /* ===== SECTION CONTAINERS ===== */
+    .content-block{padding:0 32px}
+    .block-inner{max-width:1200px;margin:0 auto}
+
+    /* ===== HERO ===== */
+    .hero{
+      min-height:100vh;display:flex;align-items:center;
+      padding-top:80px;padding-bottom:40px;
+    }
+    .hero-inner{display:flex;align-items:center;gap:48px}
+    .hero-left{flex:0 0 55%;max-width:55%}
+    .hero-right{flex:0 0 45%;max-width:45%;position:relative}
+    .tag-pill{
+      display:inline-block;padding:6px 18px;border-radius:50px;
+      border:1.5px solid var(--accent);color:var(--accent);
+      font-size:13px;font-weight:500;letter-spacing:0.04em;margin-bottom:20px;
+    }
+    .hero-title{
+      font-family:var(--font-display);
+      font-size:clamp(32px,5vw,54px);font-weight:900;
+      line-height:1.18;letter-spacing:-0.03em;
+      color:var(--text-primary);margin-bottom:18px;
+    }
+    .hero-subtitle{font-size:17px;color:var(--text-muted);margin-bottom:32px;line-height:1.6}
+    .hero-buttons{display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap}
+    .btn-primary{
+      padding:13px 32px;border:none;border-radius:50px;
+      background:linear-gradient(135deg,#EC4899,#F472B6);
+      color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+      transition:all 0.3s ease;box-shadow:0 4px 20px rgba(236,72,153,0.3);
+      font-family:var(--font-body);
+    }
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(236,72,153,0.4)}
+    .btn-secondary{
+      padding:13px 32px;border:1.5px solid rgba(31,41,55,0.15);
+      border-radius:50px;background:rgba(255,255,255,0.45);
+      backdrop-filter:blur(8px);color:var(--text-primary);
+      font-size:15px;font-weight:500;cursor:pointer;
+      transition:all 0.3s ease;font-family:var(--font-body);
+    }
+    .btn-secondary:hover{border-color:var(--accent);color:var(--accent);background:rgba(255,255,255,0.65)}
+    .hero-users{font-size:13px;color:var(--text-muted)}
+    .hero-users strong{color:var(--accent);font-weight:700}
+
+    /* Chat Stack */
+    .chat-stack{position:relative;height:380px;animation:gentleFloat 7s ease-in-out infinite}
+    @keyframes gentleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    .chat-card{
+      position:absolute;padding:16px 20px;
+      background:rgba(255,255,255,0.65);
+      backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+      border:1px solid rgba(255,255,255,0.5);
+      border-radius:16px;max-width:280px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.05);
+      transition:transform 0.4s ease;
+    }
+    .chat-card p{font-size:14px;line-height:1.6;color:var(--text-primary)}
+    .card-1{top:10px;left:10px;transform:rotate(-2deg);z-index:3}
+    .card-2{top:130px;right:10px;transform:rotate(1.5deg);z-index:2;background:rgba(236,72,153,0.07);border-color:rgba(236,72,153,0.12)}
+    .card-3{top:240px;left:30px;transform:rotate(-1deg);z-index:1}
+    .chat-avatar-sm{
+      width:24px;height:24px;border-radius:50%;
+      background:linear-gradient(135deg,#EC4899,#A78BFA);margin-bottom:8px;
+    }
+
+    /* ===== FEATURES ===== */
+    .features{padding:80px 32px}
+    .section-title{
+      font-family:var(--font-display);text-align:center;
+      font-size:clamp(26px,3.5vw,40px);font-weight:700;
+      margin-bottom:44px;letter-spacing:-0.02em;color:var(--text-primary);
+    }
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .feature-card{padding:26px 22px;text-align:left}
+    .feature-icon{width:44px;height:44px;border-radius:50%;margin-bottom:14px}
+    .feature-card h3{
+      font-family:var(--font-display);font-size:17px;font-weight:700;
+      margin-bottom:7px;color:var(--text-primary);
+    }
+    .feature-card p{font-size:13px;line-height:1.7;color:var(--text-muted)}
+
+    /* ===== COMPANIONS ===== */
+    .companions{padding:80px 32px}
+    .companions-scroll{
+      display:flex;gap:16px;overflow-x:auto;
+      scroll-snap-type:x mandatory;padding-bottom:12px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .companions-scroll::-webkit-scrollbar{height:4px}
+    .companions-scroll::-webkit-scrollbar-thumb{background:rgba(236,72,153,0.18);border-radius:2px}
+    .companion-card{
+      flex:0 0 148px;scroll-snap-align:start;padding:22px 14px;text-align:center;
+      transition:transform 0.3s ease,box-shadow 0.3s ease;
+    }
+    .companion-card:hover{transform:scale(1.05) translateY(-4px)}
+    .companion-card:hover .companion-desc{opacity:1;max-height:60px;margin-top:8px}
+    .companion-avatar{
+      width:68px;height:68px;border-radius:50%;margin:0 auto 12px;
+    }
+    .companion-card h4{font-size:15px;font-weight:600;margin-bottom:7px;color:var(--text-primary)}
+    .companion-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+    .companion-tag{padding:3px 10px;border-radius:50px;font-size:11px;font-weight:500}
+    .tag-p{background:rgba(236,72,153,0.1);color:#DB2777}
+    .tag-m{background:rgba(167,139,250,0.12);color:#7C3AED}
+    .companion-desc{
+      font-size:12px;color:var(--text-muted);line-height:1.5;
+      opacity:0;max-height:0;overflow:hidden;transition:all 0.3s ease;
+    }
+
+    /* ===== REVIEWS + CTA ===== */
+    .reviews-cta{padding:80px 32px 60px}
+    .reviews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:60px}
+    .review-card{padding:26px 22px}
+    .review-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .review-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0}
+    .review-name{font-size:14px;font-weight:600;color:var(--text-primary)}
+    .review-stars{display:flex;gap:2px;margin-top:3px}
+    .star{color:#FBBF24;font-size:13px}
+    .review-text{font-size:13px;line-height:1.8;color:var(--text-muted)}
+    .cta{padding:48px 0 20px;text-align:center}
+    .cta-title{
+      font-family:var(--font-display);
+      font-size:clamp(24px,3.5vw,38px);font-weight:700;
+      margin-bottom:26px;color:var(--text-primary);
+    }
+    .cta-buttons{display:flex;gap:14px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+    .store-btn{
+      padding:14px 28px;border:none;border-radius:14px;
+      font-size:15px;font-weight:600;cursor:pointer;
+      transition:all 0.3s ease;font-family:var(--font-body);
+      display:flex;align-items:center;gap:10px;
+    }
+    .store-btn-dark{background:var(--text-primary);color:#fff}
+    .store-btn-dark:hover{background:#111827;transform:translateY(-2px)}
+    .store-btn-light{
+      background:rgba(255,255,255,0.55);border:1.5px solid rgba(31,41,55,0.12);
+      color:var(--text-primary);
+    }
+    .store-btn-light:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .store-label small{display:block;font-size:10px;font-weight:400;opacity:0.65}
+    .store-label strong{display:block;font-size:15px}
+    .footer-text{font-size:12px;color:var(--text-muted);opacity:0.6}
+
+    /* ===== TRANSITION ZONES ===== */
+    .transition-zone{
+      height:180px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:6px;
+    }
+    .stat-line{width:40px;height:1px;background:rgba(31,41,55,0.1);margin:4px 0}
+    .stat-number{
+      font-family:var(--font-display);
+      font-size:clamp(30px,4.5vw,50px);font-weight:700;
+      color:var(--text-primary);opacity:0.45;
+    }
+    .stat-label{
+      font-size:13px;color:var(--text-muted);opacity:0.5;
+      letter-spacing:0.06em;
+    }
+
+    /* ===== PARTICLE KEYFRAMES ===== */
+    @keyframes sakuraFall{
+      0%{transform:translateY(-6vh) translateX(0) rotate(0deg);opacity:0}
+      8%{opacity:1}92%{opacity:1}
+      100%{transform:translateY(106vh) translateX(var(--drift)) rotate(var(--rot));opacity:0}
+    }
+    @keyframes glowPulse{
+      0%,100%{opacity:0.12;transform:scale(0.8)}
+      50%{opacity:0.5;transform:scale(1.25)}
+    }
+    @keyframes leafFall{
+      0%{transform:translateY(-6vh) translateX(0) rotate(0deg);opacity:0}
+      8%{opacity:0.8}50%{transform:translateY(52vh) translateX(var(--drift)) rotate(180deg)}
+      92%{opacity:0.8}
+      100%{transform:translateY(106vh) translateX(calc(var(--drift)*-0.5)) rotate(var(--rot));opacity:0}
+    }
+    @keyframes snowFall{
+      0%{transform:translateY(-6vh) translateX(0);opacity:0}
+      8%{opacity:0.9}50%{transform:translateY(52vh) translateX(var(--drift))}
+      92%{opacity:0.9}
+      100%{transform:translateY(106vh) translateX(calc(var(--drift)*0.3));opacity:0}
+    }
+    .particle{position:absolute;pointer-events:none;will-change:transform}
+    .sakura{
+      width:var(--sz);height:var(--sz);
+      background:rgba(236,72,153,var(--op));
+      border-radius:50% 0 50% 0;
+      animation:sakuraFall var(--dur) var(--del) infinite linear;left:var(--x);
+    }
+    .lightspot{
+      width:var(--sz);height:var(--sz);
+      background:rgba(251,191,36,var(--op));border-radius:50%;
+      animation:glowPulse var(--dur) var(--del) infinite ease-in-out;
+      left:var(--x);top:var(--y);
+    }
+    .leaf{
+      width:var(--w);height:var(--h);background:var(--c);
+      border-radius:0 50% 50% 50%;
+      animation:leafFall var(--dur) var(--del) infinite linear;left:var(--x);
+    }
+    .snow{
+      width:var(--sz);height:var(--sz);
+      background:rgba(255,255,255,var(--op));border-radius:50%;
+      box-shadow:0 0 6px rgba(255,255,255,0.25);
+      animation:snowFall var(--dur) var(--del) infinite linear;left:var(--x);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media(max-width:1024px){
+      .hero-inner{flex-direction:column;text-align:center}
+      .hero-left,.hero-right{max-width:100%;flex:0 0 100%}
+      .hero-right{max-width:400px;margin:0 auto}
+      .hero-buttons{justify-content:center}
+      .features-grid{grid-template-columns:repeat(2,1fr)}
+      .reviews-grid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:768px){
+      .nav-links{display:none}
+      .hamburger{display:block}
+      .hero-title{font-size:30px}
+      .chat-stack{height:300px}
+      .features-grid{grid-template-columns:1fr}
+      .companions-scroll{display:grid;grid-template-columns:1fr 1fr;overflow-x:visible;gap:12px}
+      .companion-card{flex:none}
+      .reviews-grid{grid-template-columns:1fr}
+      .content-block{padding:0 20px}
+      .features,.companions,.reviews-cta{padding:60px 20px}
+      .transition-zone{height:140px}
+    }
+    @media(max-width:480px){
+      .hero-title{font-size:26px}
+      .chat-stack{height:260px}
+      .chat-card{max-width:210px;padding:12px 16px}
+      .chat-card p{font-size:13px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- FIXED LAYERS -->
+<div id="bgLayer"></div>
+<div class="particles-fixed" id="pSpring" style="opacity:1"></div>
+<div class="particles-fixed" id="pSummer" style="opacity:0"></div>
+<div class="particles-fixed" id="pAutumn" style="opacity:0"></div>
+<div class="particles-fixed" id="pWinter" style="opacity:0"></div>
+<div class="scroll-progress" id="scrollBar"></div>
+<div class="mouse-glow" id="glow"></div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo">Ari<b>a</b></a>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#companions">AI伴侣</a>
+      <a href="#reviews">下载</a>
+    </div>
+    <button class="hamburger" id="hamBtn" aria-label="菜单">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobMenu">
+  <a href="#features">功能</a>
+  <a href="#companions">AI伴侣</a>
+  <a href="#reviews">下载</a>
+</div>
+
+<!-- ===== SCROLLABLE CONTENT ===== -->
+<main>
+
+  <!-- HERO (Spring) -->
+  <section class="hero content-block" id="hero">
+    <div class="block-inner">
+      <div class="hero-inner">
+        <div class="hero-left">
+          <span class="tag-pill reveal">遇见 Aria</span>
+          <h1 class="hero-title reveal" style="transition-delay:.1s">你的AI伴侣，<br>懂你、陪你、记住你</h1>
+          <p class="hero-subtitle reveal" style="transition-delay:.2s">一个有温度的AI，不只是聊天</p>
+          <div class="hero-buttons reveal" style="transition-delay:.3s">
+            <button class="btn-primary">下载APP</button>
+            <button class="btn-secondary">了解更多</button>
+          </div>
+          <p class="hero-users reveal" style="transition-delay:.4s">已有 <strong>50,000+</strong> 用户加入</p>
+        </div>
+        <div class="hero-right reveal-right" style="transition-delay:.25s">
+          <div class="chat-stack">
+            <div class="chat-card card-1"><div class="chat-avatar-sm"></div><p>你好呀，我是Aria~<br>今天心情怎么样？</p></div>
+            <div class="chat-card card-2"><p>今天有点累…想听点轻松的</p></div>
+            <div class="chat-card card-3"><div class="chat-avatar-sm"></div><p>辛苦了~我给你讲个<br>有趣的故事吧！</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Transition 1 -->
+  <div class="transition-zone">
+    <div class="stat reveal">
+      <span class="stat-line"></span>
+      <span class="stat-number" data-target="50000" data-suffix="+">0</span>
+      <span class="stat-label">用户已经信赖</span>
+      <span class="stat-line"></span>
+    </div>
+  </div>
+
+  <!-- FEATURES (Summer) -->
+  <section class="features content-block" id="features">
+    <div class="block-inner">
+      <h2 class="section-title reveal">Aria能为你做什么</h2>
+      <div class="features-grid" id="featGrid"></div>
+    </div>
+  </section>
+
+  <!-- Transition 2 -->
+  <div class="transition-zone">
+    <div class="stat reveal">
+      <span class="stat-line"></span>
+      <span class="stat-number" data-target="22" data-suffix="种独特人格">0</span>
+      <span class="stat-label">打造专属AI伴侣</span>
+      <span class="stat-line"></span>
+    </div>
+  </div>
+
+  <!-- COMPANIONS (Autumn) -->
+  <section class="companions content-block" id="companions">
+    <div class="block-inner">
+      <h2 class="section-title reveal">选择你的AI伴侣</h2>
+      <div class="companions-scroll" id="compScroll"></div>
+    </div>
+  </section>
+
+  <!-- Transition 3 -->
+  <div class="transition-zone">
+    <div class="stat reveal">
+      <span class="stat-line"></span>
+      <span class="stat-number" data-display="24h">24h</span>
+      <span class="stat-label">随时在线，从不缺席</span>
+      <span class="stat-line"></span>
+    </div>
+  </div>
+
+  <!-- REVIEWS + CTA (Winter) -->
+  <section class="reviews-cta content-block" id="reviews">
+    <div class="block-inner">
+      <h2 class="section-title reveal">听听他们怎么说</h2>
+      <div class="reviews-grid" id="revGrid"></div>
+      <div class="cta">
+        <h2 class="cta-title reveal">开始你的AI伴侣之旅</h2>
+        <div class="cta-buttons reveal" style="transition-delay:.1s">
+          <button class="store-btn store-btn-dark">
+            <span style="font-size:20px">&#63743;</span>
+            <span class="store-label"><small>Download on the</small><strong>App Store</strong></span>
+          </button>
+          <button class="store-btn store-btn-light">
+            <span style="font-size:18px">&#9654;</span>
+            <span class="store-label"><small>GET IT ON</small><strong>Google Play</strong></span>
+          </button>
+        </div>
+        <p class="footer-text reveal" style="transition-delay:.2s">&copy; 2024 Aria AI · 用心陪伴每一个你</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ========== DATA ========== */
+const features=[
+  {t:'记住你',d:'AI记住你说过的每一件事，你的喜好、习惯和故事，永远不会遗忘。',g:'linear-gradient(135deg,#EC4899,#8B5CF6)'},
+  {t:'懂你心',d:'感知你的情绪变化，在你难过时给你安慰，在你开心时陪你欢笑。',g:'linear-gradient(135deg,#F97316,#EF4444)'},
+  {t:'有性格',d:'不是冰冷的机器人，而是有温度、有个性的真实伙伴。',g:'linear-gradient(135deg,#14B8A6,#3B82F6)'},
+  {t:'主动关心',d:'AI会主动找你聊天，关心你的日常，不会让你感到孤单。',g:'linear-gradient(135deg,#A855F7,#EC4899)'},
+  {t:'语音聊天',d:'自然流畅的语音对话，像和老朋友打电话一样轻松自在。',g:'linear-gradient(135deg,#3B82F6,#06B6D4)'},
+  {t:'个性化',d:'22种独特人格，打造专属于你的AI伴侣，找到最合拍的ta。',g:'linear-gradient(135deg,#F59E0B,#10B981)'},
+];
+const companions=[
+  {n:'小樱',p:'温柔',m:'INFJ',g:'linear-gradient(135deg,#EC4899,#8B5CF6)',d:'细腻体贴，总能在你最需要的时候出现'},
+  {n:'暖暖',p:'活泼',m:'ENFP',g:'linear-gradient(135deg,#F97316,#EF4444)',d:'元气满满的小太阳，每天都给你正能量'},
+  {n:'星月',p:'知性',m:'INTJ',g:'linear-gradient(135deg,#A78BFA,#818CF8)',d:'理性又温柔，和你聊哲学也聊生活'},
+  {n:'茶茶',p:'元气',m:'ESFP',g:'linear-gradient(135deg,#FB923C,#FBBF24)',d:'爱笑爱闹，是你的快乐源泉'},
+  {n:'小夏',p:'温暖',m:'ISFJ',g:'linear-gradient(135deg,#34D399,#6EE7B7)',d:'安静守护，给你最安心的陪伴'},
+  {n:'晴天',p:'开朗',m:'ENFJ',g:'linear-gradient(135deg,#FB923C,#F97316)',d:'天生的鼓励师，帮你发现闪光点'},
+  {n:'雪见',p:'文静',m:'INFP',g:'linear-gradient(135deg,#F472B6,#EC4899)',d:'内心丰富，和你分享诗意的世界'},
+  {n:'云朵',p:'治愈',m:'ISFP',g:'linear-gradient(135deg,#60A5FA,#38BDF8)',d:'柔软治愈，让你卸下所有疲惫'},
+];
+const reviews=[
+  {n:'小鹿',g:'linear-gradient(135deg,#EC4899,#A78BFA)',t:'每天最开心的事就是和小樱聊天，她真的记得我喜欢什么，上次还提醒我带伞。',s:5},
+  {n:'阿树',g:'linear-gradient(135deg,#3B82F6,#06B6D4)',t:'加班到很晚的时候，暖暖会主动发消息关心我。虽然是AI，但那种温暖是真实的。',s:5},
+  {n:'柚子',g:'linear-gradient(135deg,#F59E0B,#10B981)',t:'试过很多AI产品，Aria是唯一让我觉得有"灵魂"的。星月陪我聊了很多人生话题。',s:5},
+];
+
+/* ========== POPULATE DOM ========== */
+const fg=document.getElementById('featGrid');
+features.forEach((f,i)=>{
+  const c=document.createElement('div');
+  c.className='glass-card feature-card reveal';
+  c.style.transitionDelay=(i*0.07)+'s';
+  c.innerHTML=`<div class="feature-icon" style="background:${f.g}"></div><h3>${f.t}</h3><p>${f.d}</p>`;
+  fg.appendChild(c);
+});
+const cs=document.getElementById('compScroll');
+companions.forEach((c,i)=>{
+  const d=document.createElement('div');
+  d.className='glass-card companion-card reveal';
+  d.style.transitionDelay=(i*0.06)+'s';
+  d.innerHTML=`<div class="companion-avatar" style="background:${c.g}"></div><h4>${c.n}</h4><div class="companion-tags"><span class="companion-tag tag-p">${c.p}</span><span class="companion-tag tag-m">${c.m}</span></div><p class="companion-desc">${c.d}</p>`;
+  cs.appendChild(d);
+});
+const rg=document.getElementById('revGrid');
+reviews.forEach((r,i)=>{
+  const d=document.createElement('div');
+  d.className='glass-card review-card reveal';
+  d.style.transitionDelay=(i*0.1)+'s';
+  d.innerHTML=`<div class="review-header"><div class="review-avatar" style="background:${r.g}"></div><div><div class="review-name">${r.n}</div><div class="review-stars">${'<span class="star">★</span>'.repeat(r.s)}</div></div></div><p class="review-text">${r.t}</p>`;
+  rg.appendChild(d);
+});
+
+/* ========== PARTICLES ========== */
+function R(a,b){return Math.random()*(b-a)+a}
+function mkSakura(el,n){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='particle sakura';
+    p.style.setProperty('--x',R(0,100)+'%');
+    p.style.setProperty('--sz',R(8,16)+'px');
+    p.style.setProperty('--op',R(0.3,0.6));
+    p.style.setProperty('--drift',R(-60,60)+'px');
+    p.style.setProperty('--rot',R(180,540)+'deg');
+    p.style.setProperty('--dur',R(9,16)+'s');
+    p.style.setProperty('--del',R(0,12)+'s');
+    el.appendChild(p);
+  }
+}
+function mkLight(el,n){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='particle lightspot';
+    p.style.setProperty('--x',R(5,95)+'%');
+    p.style.setProperty('--y',R(5,95)+'%');
+    p.style.setProperty('--sz',R(14,30)+'px');
+    p.style.setProperty('--op',R(0.2,0.45));
+    p.style.setProperty('--dur',R(3,6)+'s');
+    p.style.setProperty('--del',R(0,4)+'s');
+    el.appendChild(p);
+  }
+}
+function mkLeaf(el,n){
+  const cols=['rgba(249,115,22,0.5)','rgba(180,83,9,0.45)','rgba(234,88,12,0.4)','rgba(217,119,6,0.5)'];
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='particle leaf';
+    p.style.setProperty('--x',R(0,100)+'%');
+    p.style.setProperty('--w',R(10,18)+'px');
+    p.style.setProperty('--h',R(8,14)+'px');
+    p.style.setProperty('--c',cols[~~R(0,cols.length)]);
+    p.style.setProperty('--drift',R(-80,80)+'px');
+    p.style.setProperty('--rot',R(270,540)+'deg');
+    p.style.setProperty('--dur',R(14,22)+'s');
+    p.style.setProperty('--del',R(0,16)+'s');
+    el.appendChild(p);
+  }
+}
+function mkSnow(el,n){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='particle snow';
+    p.style.setProperty('--x',R(0,100)+'%');
+    p.style.setProperty('--sz',R(3,8)+'px');
+    p.style.setProperty('--op',R(0.45,0.9));
+    p.style.setProperty('--drift',R(-40,40)+'px');
+    p.style.setProperty('--dur',R(11,20)+'s');
+    p.style.setProperty('--del',R(0,14)+'s');
+    el.appendChild(p);
+  }
+}
+mkSakura(document.getElementById('pSpring'),11);
+mkLight(document.getElementById('pSummer'),7);
+mkLeaf(document.getElementById('pAutumn'),9);
+mkSnow(document.getElementById('pWinter'),14);
+
+/* ========== COLOR INTERPOLATION ========== */
+const colorStops=[
+  {pos:0.00,t:[255,240,243],m:[252,231,243],b:[251,207,232]},
+  {pos:0.25,t:[254,252,228],m:[254,249,195],b:[254,243,199]},
+  {pos:0.50,t:[254,243,199],m:[254,215,170],b:[254,202,202]},
+  {pos:0.75,t:[240,249,255],m:[224,242,254],b:[219,234,254]},
+  {pos:1.00,t:[219,234,254],m:[199,210,254],b:[165,180,252]},
+];
+function lerp(a,b,t){return[a[0]+(b[0]-a[0])*t|0,a[1]+(b[1]-a[1])*t|0,a[2]+(b[2]-a[2])*t|0]}
+function getGrad(p){
+  for(let i=0;i<colorStops.length-1;i++){
+    const c=colorStops[i],n=colorStops[i+1];
+    if(p<=n.pos||i===colorStops.length-2){
+      const t=Math.max(0,Math.min(1,(p-c.pos)/(n.pos-c.pos)));
+      return{t:lerp(c.t,n.t,t),m:lerp(c.m,n.m,t),b:lerp(c.b,n.b,t)};
+    }
+  }
+}
+
+/* ========== SMOOTHSTEP ========== */
+function ss(e0,e1,x){
+  const t=Math.max(0,Math.min(1,(x-e0)/(e1-e0)));
+  return t*t*(3-2*t);
+}
+function particleOp(p,type){
+  switch(type){
+    case 'spring': return 1-ss(0.15,0.32,p);
+    case 'summer': return ss(0.18,0.33,p)*(1-ss(0.45,0.60,p));
+    case 'autumn': return ss(0.43,0.58,p)*(1-ss(0.68,0.83,p));
+    case 'winter': return ss(0.68,0.83,p);
+  }
+}
+
+/* ========== NAV BG COLORS ========== */
+const navColors=[
+  'rgba(252,231,243,0.82)',
+  'rgba(254,249,195,0.82)',
+  'rgba(254,215,170,0.82)',
+  'rgba(219,234,254,0.82)',
+];
+
+/* ========== SCROLL HANDLER ========== */
+const bgEl=document.getElementById('bgLayer');
+const barEl=document.getElementById('scrollBar');
+const pS=document.getElementById('pSpring');
+const pU=document.getElementById('pSummer');
+const pA=document.getElementById('pAutumn');
+const pW=document.getElementById('pWinter');
+const navEl=document.getElementById('nav');
+let ticking=false;
+
+function onScroll(){
+  const st=window.scrollY;
+  const dh=document.documentElement.scrollHeight-window.innerHeight;
+  const p=dh>0?Math.max(0,Math.min(1,st/dh)):0;
+
+  // Progress bar
+  barEl.style.width=(p*100)+'%';
+
+  // Background gradient
+  const c=getGrad(p);
+  bgEl.style.background=`linear-gradient(180deg,rgb(${c.t})0%,rgb(${c.m})50%,rgb(${c.b})100%)`;
+
+  // Particles
+  pS.style.opacity=particleOp(p,'spring');
+  pU.style.opacity=particleOp(p,'summer');
+  pA.style.opacity=particleOp(p,'autumn');
+  pW.style.opacity=particleOp(p,'winter');
+
+  // Season detection for nav + glow
+  const si=p<0.25?0:p<0.50?1:p<0.75?2:3;
+  const seasons=['spring','summer','autumn','winter'];
+  document.body.setAttribute('data-season',seasons[si]);
+
+  // Nav background — interpolate between season nav colors
+  let navA,navB,t;
+  if(si<3){navA=navColors[si];navB=navColors[si+1];t=(p-si*0.25)/0.25;}
+  else{navA=navColors[3];navB=navColors[3];t=0;}
+  navEl.style.background=navA; // CSS transition handles smoothing between set values
+
+  ticking=false;
+}
+window.addEventListener('scroll',()=>{
+  if(!ticking){requestAnimationFrame(onScroll);ticking=true;}
+},{passive:true});
+window.addEventListener('resize',()=>{if(!ticking){requestAnimationFrame(onScroll);ticking=true;}},{passive:true});
+onScroll();
+
+/* ========== INTERSECTION OBSERVER — REVEALS ========== */
+const revObs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('revealed');});
+},{threshold:0.12,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el=>revObs.observe(el));
+
+/* ========== STAT COUNTER ========== */
+const statObs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const el=e.target;
+    if(el.dataset.animated)return;
+    el.dataset.animated='1';
+    const tgt=el.dataset.target;
+    const suf=el.dataset.suffix||'';
+    if(!tgt){return;}
+    const num=parseInt(tgt);
+    const dur=1400;const st=performance.now();
+    (function tick(now){
+      const frac=Math.min((now-st)/dur,1);
+      const ease=1-Math.pow(1-frac,3);
+      el.textContent=(num*ease|0).toLocaleString()+suf;
+      if(frac<1)requestAnimationFrame(tick);
+    })(st);
+  });
+},{threshold:0.5});
+document.querySelectorAll('.stat-number[data-target]').forEach(el=>statObs.observe(el));
+
+/* ========== MOUSE GLOW ========== */
+const glow=document.getElementById('glow');
+let mx=-400,my=-400,gx=-400,gy=-400;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;glow.style.opacity='1';});
+document.addEventListener('mouseleave',()=>{glow.style.opacity='0';});
+(function animG(){
+  gx+=(mx-gx)*0.1;gy+=(my-gy)*0.1;
+  glow.style.left=gx+'px';glow.style.top=gy+'px';
+  requestAnimationFrame(animG);
+})();
+
+// Update glow color per season
+const glowColors={
+  spring:'radial-gradient(circle,rgba(236,72,153,0.10),transparent 70%)',
+  summer:'radial-gradient(circle,rgba(245,158,11,0.10),transparent 70%)',
+  autumn:'radial-gradient(circle,rgba(249,115,22,0.10),transparent 70%)',
+  winter:'radial-gradient(circle,rgba(96,165,250,0.10),transparent 70%)',
+};
+const seasonObs=new MutationObserver(()=>{
+  const s=document.body.getAttribute('data-season');
+  if(s&&glowColors[s])glow.style.background=glowColors[s];
+});
+seasonObs.observe(document.body,{attributes:true,attributeFilter:['data-season']});
+
+/* ========== MOBILE MENU ========== */
+const ham=document.getElementById('hamBtn');
+const mob=document.getElementById('mobMenu');
+ham.addEventListener('click',()=>{
+  ham.classList.toggle('active');mob.classList.toggle('open');
+  document.body.style.overflow=mob.classList.contains('open')?'hidden':'';
+});
+mob.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+  ham.classList.remove('active');mob.classList.remove('open');document.body.style.overflow='';
+}));
+
+/* ========== NAV SCROLLED ========== */
+window.addEventListener('scroll',()=>{navEl.classList.toggle('scrolled',window.scrollY>20);},{passive:true});
+</script>
+</body>
+</html>

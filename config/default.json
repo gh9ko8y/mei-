@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "Aria·念",
+    "version": "0.1.0",
+    "host": "0.0.0.0",
+    "port": 8000
+  },
+  "mimo": {
+    "api_base": "https://token-plan-cn.xiaomimimo.com/v1",
+    "api_key": "",
+    "model_pro": "mimo-v2.5-pro",
+    "model_std": "mimo-v2.5",
+    "model_tts": "mimo-v2.5-tts",
+    "model_asr": "mimo-v2.5-asr",
+    "max_tokens": 2048,
+    "temperature": 0.7
+  },
+  "personality": {
+    "max_ai_companions": 3,
+    "default_preset": "温柔女友",
+    "incompatible_param_adjust": -0.1
+  },
+  "memory": {
+    "max_events_per_user": 10000,
+    "short_term_days": 7,
+    "medium_term_days": 30,
+    "long_term_permanent": true
+  }
+}
