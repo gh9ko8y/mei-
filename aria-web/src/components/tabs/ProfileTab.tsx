@@ -13,7 +13,6 @@ import {
   Star,
   Eye,
   Wallet,
-  CalendarCheck,
   Trophy,
   LogOut,
 } from "lucide-react";
@@ -25,106 +24,117 @@ interface ProfileTabProps {
   onLogout: () => void;
 }
 
+const menuItems = [
+  { icon: FileText, label: "我的发布", desc: "查看发布的动态", path: "/profile/posts" },
+  { icon: Star, label: "我的收藏", desc: "收藏的动态和消息", path: "/profile/favorites" },
+  { icon: Eye, label: "浏览记录", desc: "最近浏览的内容", path: "/profile/history" },
+  { icon: Wallet, label: "我的钱包", desc: "余额和充值", path: "/profile/wallet" },
+  { icon: Gift, label: "每日签到", desc: "领取积分奖励", path: "/profile/checkin" },
+  { icon: Trophy, label: "成就系统", desc: "已获得3个成就", path: "/profile/achievements" },
+];
+
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+  },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
 };
 
 export default function ProfileTab({ isLoggedIn, userInfo, onLogin, onLogout }: ProfileTabProps) {
   const router = useRouter();
-  const [hasPlan] = useState(false);
-
-  const menuItems = [
-    { icon: FileText, label: "我的发布", desc: "查看发布的动态", path: "/profile/posts" },
-    { icon: Star, label: "我的收藏", desc: "收藏的动态和消息", path: "/profile/favorites" },
-    { icon: Eye, label: "浏览记录", desc: "最近浏览的内容", path: "/profile/history" },
-    { icon: Wallet, label: "我的钱包", desc: "余额和充值", path: "/profile/wallet" },
-    { icon: CalendarCheck, label: "每日签到", desc: "领取积分奖励", path: "/profile/checkin" },
-    { icon: Trophy, label: "成就系统", desc: "已获得3个成就", path: "/profile/achievements" },
-  ];
+  const [hasPlan, setHasPlan] = useState(false);
 
   return (
     <motion.div
-      className="p-4 space-y-4 bg-[#FFF8F5] min-h-[calc(100dvh-60px)]"
+      className="p-4 space-y-4"
       variants={containerVariants}
       initial="hidden"
-      animate="show"
+      animate="visible"
     >
-      <motion.h1 variants={itemVariants} className="font-bold text-lg text-[#2D2D3A]">
-        我的
-      </motion.h1>
-
       {/* 用户信息卡片 */}
       {isLoggedIn ? (
         <motion.div
           variants={itemVariants}
-          className="bg-gradient-to-br from-[#C44569] via-[#E85D75] to-[#F28C8C] rounded-[20px] p-4 text-white shadow-[0_4px_16px_rgba(232,93,117,0.25)] relative overflow-hidden"
+          className="rounded-[20px] p-4 text-[#E8E6E3]"
+          style={{
+            background: "linear-gradient(135deg, #1A1510 0%, #141218 100%)",
+            border: "1px solid rgba(212, 165, 116, 0.1)",
+          }}
         >
-          {/* Decorative circles */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
-
-          <div className="relative flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl border-2 border-white/30 shadow-lg overflow-hidden">
-              {userInfo?.avatar ? (
-                <img src={userInfo.avatar} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                <User size={28} className="text-white" />
-              )}
+          <div className="flex items-center gap-4">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center border-2"
+              style={{ borderColor: "rgba(212, 165, 116, 0.3)" }}
+            >
+              <User size={28} className="text-[#D4A574]" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-lg font-bold truncate">
+              <div className="text-[20px] font-bold leading-tight">
                 {userInfo?.nickname || userInfo?.username || "用户"}
               </div>
-              <div className="text-sm opacity-90">
+              <div className="text-[13px] text-[#8A8880] mt-0.5">
                 Aria号: {userInfo?.username || "未知"}
               </div>
             </div>
-            <motion.button
+            <button
               onClick={() => router.push("/profile/edit")}
-              whileTap={{ scale: 0.95 }}
-              className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-xs hover:bg-white/30 transition-colors border border-white/20"
+              className="px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md transition-colors shrink-0"
+              style={{
+                background: "rgba(255, 255, 255, 0.06)",
+                color: "#D4A574",
+              }}
             >
               编辑资料
-            </motion.button>
+            </button>
           </div>
-          <div className="relative flex justify-around mt-4 pt-4 border-t border-white/20">
+          <div
+            className="flex justify-around mt-4 pt-4"
+            style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}
+          >
             <div className="text-center">
-              <div className="text-lg font-bold">890</div>
-              <div className="text-xs opacity-80">积分</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold">47</div>
-              <div className="text-xs opacity-80">天数</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold">3</div>
-              <div className="text-xs opacity-80">成就</div>
+              <div className="text-lg font-bold text-[#D4A574]">890</div>
+              <div className="text-[11px] text-[#8A8880]">积分</div>
             </div>
           </div>
         </motion.div>
       ) : (
         <motion.div
           variants={itemVariants}
-          className="bg-gradient-to-br from-[#FFF0F3] to-[#FCE4EC] rounded-[20px] p-6 text-center border border-[rgba(232,93,117,0.1)]"
+          className="rounded-[20px] p-6 text-center"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <motion.div
-            animate={{ y: [0, -8, 0] }}
+            className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"
+            style={{
+              background: "rgba(255, 255, 255, 0.06)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(212, 165, 116, 0.15)",
+            }}
+            animate={{ y: [0, -6, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-[#E85D75] to-[#F28C8C] flex items-center justify-center text-4xl mx-auto mb-4 shadow-[0_4px_16px_rgba(232,93,117,0.25)]"
           >
-            <User size={32} className="text-white" />
+            <User size={36} className="text-[#D4A574]" />
           </motion.div>
-          <p className="text-[#6B6B7B] mb-4">登录后享受更多功能</p>
+          <p className="text-[#8A8880] mb-4 text-[15px]">登录后享受更多功能</p>
           <motion.button
             onClick={onLogin}
-            whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white rounded-[16px] font-semibold shadow-[0_4px_16px_rgba(232,93,117,0.25)]"
+            className="px-8 py-3 rounded-[14px] font-semibold text-[15px] text-[#0C0C14]"
+            style={{
+              background: "linear-gradient(135deg, #D4A574, #C9956A)",
+              boxShadow: "0 4px 16px rgba(212, 165, 116, 0.25)",
+            }}
+            whileHover={{ y: -1, boxShadow: "0 6px 20px rgba(212, 165, 116, 0.35)" }}
+            whileTap={{ scale: 0.97 }}
           >
             登录 / 注册
           </motion.button>
@@ -135,23 +145,30 @@ export default function ProfileTab({ isLoggedIn, userInfo, onLogin, onLogout }: 
       {isLoggedIn && (
         <motion.div
           variants={itemVariants}
-          whileHover={{ scale: 1.01 }}
-          className="bg-gradient-to-r from-[#FEF9E7] to-[#FFF5E1] rounded-[20px] border border-[#F5DEB3] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "linear-gradient(135deg, #1A1814 0%, #141210 100%)",
+            border: "1px solid #3A3020",
+          }}
         >
           {hasPlan ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F5A623] to-[#F7BE5E] flex items-center justify-center">
-                  <Crown size={18} className="text-white" />
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #C4956A, #D4A574)" }}
+                >
+                  <Crown size={20} className="text-[#0C0C14]" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-[#8B6914]">会员套餐</div>
-                  <div className="text-xs text-[#A0843C]">到期时间：2026-12-31</div>
+                  <div className="text-sm font-semibold text-[#E8E6E3]">会员套餐</div>
+                  <div className="text-xs text-[#8A8880]">到期时间：2026-12-31</div>
                 </div>
               </div>
               <motion.button
+                className="px-4 py-1.5 text-[#0C0C14] rounded-full text-xs font-medium"
+                style={{ background: "linear-gradient(135deg, #D4A574, #C9956A)" }}
                 whileTap={{ scale: 0.95 }}
-                className="px-3 py-1.5 bg-gradient-to-r from-[#F5A623] to-[#F7BE5E] text-white rounded-full text-xs font-medium shadow-[0_2px_8px_rgba(245,166,35,0.25)]"
               >
                 续费
               </motion.button>
@@ -159,18 +176,22 @@ export default function ProfileTab({ isLoggedIn, userInfo, onLogin, onLogout }: 
           ) : (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F5A623] to-[#F7BE5E] flex items-center justify-center">
-                  <Gift size={18} className="text-white" />
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, #C4956A, #D4A574)" }}
+                >
+                  <Gift size={20} className="text-[#0C0C14]" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-[#8B6914]">开通会员套餐</div>
-                  <div className="text-xs text-[#A0843C]">解锁更多功能</div>
+                  <div className="text-sm font-semibold text-[#E8E6E3]">开通会员套餐</div>
+                  <div className="text-xs text-[#8A8880]">解锁更多功能</div>
                 </div>
               </div>
               <motion.button
                 onClick={() => router.push("/profile/wallet")}
+                className="px-4 py-1.5 text-[#0C0C14] rounded-full text-xs font-medium"
+                style={{ background: "linear-gradient(135deg, #D4A574, #C9956A)" }}
                 whileTap={{ scale: 0.95 }}
-                className="px-3 py-1.5 bg-gradient-to-r from-[#F5A623] to-[#F7BE5E] text-white rounded-full text-xs font-medium shadow-[0_2px_8px_rgba(245,166,35,0.25)]"
               >
                 查看套餐
               </motion.button>
@@ -182,7 +203,12 @@ export default function ProfileTab({ isLoggedIn, userInfo, onLogin, onLogout }: 
       {/* 菜单列表 */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] overflow-hidden shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+        className="rounded-[20px] overflow-hidden"
+        style={{
+          background: "rgba(255, 255, 255, 0.04)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+        }}
       >
         {menuItems.map((item, i) => {
           const Icon = item.icon;
@@ -196,21 +222,23 @@ export default function ProfileTab({ isLoggedIn, userInfo, onLogin, onLogout }: 
                 }
                 router.push(item.path);
               }}
-              whileHover={{ backgroundColor: "rgba(232, 93, 117, 0.04)" }}
-              className={`w-full flex items-center justify-between p-3.5 transition-colors ${
-                i > 0 ? "border-t border-[#F8F8F8]" : ""
-              }`}
+              className="w-full flex items-center justify-between p-3.5 transition-colors hover:bg-[rgba(255,255,255,0.03)]"
+              style={i > 0 ? { borderTop: "1px solid rgba(255, 255, 255, 0.04)" } : {}}
+              whileTap={{ scale: 0.99 }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E85D75]/10 to-[#F28C8C]/10 flex items-center justify-center">
-                  <Icon size={16} className="text-[#E85D75]" />
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(212, 165, 116, 0.08)" }}
+                >
+                  <Icon size={16} className="text-[#D4A574]" />
                 </div>
                 <div className="text-left">
-                  <div className="text-sm font-medium text-[#2D2D3A]">{item.label}</div>
-                  <div className="text-[11px] text-[#A0A0B0]">{item.desc}</div>
+                  <div className="text-sm font-medium text-[#E8E6E3]">{item.label}</div>
+                  <div className="text-[11px] text-[#8A8880]">{item.desc}</div>
                 </div>
               </div>
-              <ChevronRight size={18} className="text-[#DDD]" />
+              <ChevronRight size={18} className="text-[#5A5854]" />
             </motion.button>
           );
         })}
@@ -218,34 +246,45 @@ export default function ProfileTab({ isLoggedIn, userInfo, onLogin, onLogout }: 
 
       {/* 设置按钮 */}
       {isLoggedIn && (
-        <motion.div variants={itemVariants}>
-          <motion.button
-            onClick={() => router.push("/settings")}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full flex items-center gap-3 p-4 bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] hover:bg-[rgba(232,93,117,0.02)] transition-colors shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+        <motion.button
+          variants={itemVariants}
+          onClick={() => router.push("/settings")}
+          className="w-full flex items-center gap-3 p-4 rounded-[20px] transition-colors hover:bg-[rgba(255,255,255,0.03)]"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
+          whileTap={{ scale: 0.99 }}
+        >
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(212, 165, 116, 0.08)" }}
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6B6B7B]/10 to-[#999]/10 flex items-center justify-center">
-              <Settings size={16} className="text-[#6B6B7B]" />
-            </div>
-            <span className="text-sm font-medium text-[#2D2D3A]">设置</span>
-            <ChevronRight size={18} className="text-[#DDD] ml-auto" />
-          </motion.button>
-        </motion.div>
+            <Settings size={16} className="text-[#D4A574]" />
+          </div>
+          <span className="text-sm font-medium text-[#E8E6E3]">设置</span>
+          <ChevronRight size={18} className="text-[#5A5854] ml-auto" />
+        </motion.button>
       )}
 
       {/* 退出登录 */}
       {isLoggedIn && (
-        <motion.div variants={itemVariants}>
-          <motion.button
-            onClick={onLogout}
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-3.5 text-[#E85D5D] font-semibold bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] hover:bg-[#FFF5F5] transition-colors shadow-[0_1px_3px_rgba(45,45,58,0.06)] flex items-center justify-center gap-2"
-          >
-            <LogOut size={16} />
-            退出登录
-          </motion.button>
-        </motion.div>
+        <motion.button
+          variants={itemVariants}
+          onClick={onLogout}
+          className="w-full py-3.5 font-medium rounded-[20px] text-sm flex items-center justify-center gap-2 transition-colors"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+            color: "#9B5B5B",
+          }}
+          whileHover={{ background: "rgba(155, 91, 91, 0.05)" }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <LogOut size={16} />
+          退出登录
+        </motion.button>
       )}
     </motion.div>
   );
