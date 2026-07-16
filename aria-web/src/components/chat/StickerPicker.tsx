@@ -1,10 +1,8 @@
-/**
- * 表情包选择器 - 聊天时选择发送的表情包
- */
-
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Sparkles } from "lucide-react";
 
 interface StickerCategory {
   name: string;
@@ -30,13 +28,23 @@ const STICKER_CATEGORIES: StickerCategory[] = [
 ];
 
 const EMOTION_GROUPS = [
-  { emotion: "positive", label: "开心", color: "bg-yellow-100 text-yellow-700" },
-  { emotion: "negative", label: "难过", color: "bg-blue-100 text-blue-700" },
-  { emotion: "angry", label: "生气", color: "bg-red-100 text-red-700" },
-  { emotion: "cute", label: "撒娇", color: "bg-pink-100 text-pink-700" },
-  { emotion: "daily", label: "日常", color: "bg-gray-100 text-gray-700" },
-  { emotion: "playful", label: "调皮", color: "bg-purple-100 text-purple-700" },
+  { emotion: "positive", label: "开心", color: "bg-[#FEF9E7] text-[#B8860B]" },
+  { emotion: "negative", label: "难过", color: "bg-[#E8F4FD] text-[#4A90D9]" },
+  { emotion: "angry", label: "生气", color: "bg-[#FDEDEC] text-[#C0392B]" },
+  { emotion: "cute", label: "撒娇", color: "bg-[#FCE4EC] text-[#C44569]" },
+  { emotion: "daily", label: "日常", color: "bg-[#F5F5F5] text-[#666]" },
+  { emotion: "playful", label: "调皮", color: "bg-[#F3E5F5] text-[#7B1FA2]" },
 ];
+
+const groupContainerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.03 } },
+};
+
+const groupItemVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 20 } },
+};
 
 interface StickerPickerProps {
   onSelect: (category: string) => void;
@@ -47,49 +55,85 @@ export default function StickerPicker({ onSelect, onClose }: StickerPickerProps)
   const [activeGroup, setActiveGroup] = useState("positive");
 
   const filtered = STICKER_CATEGORIES.filter((s) => s.emotion === activeGroup);
+  const activeGroupLabel = EMOTION_GROUPS.find((g) => g.emotion === activeGroup)?.label || "";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-lg">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+      className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.06)] p-4 shadow-[0_8px_24px_rgba(45,45,58,0.12)]"
+    >
       <div className="flex items-center justify-between mb-3">
-        <span className="font-semibold text-sm">选择表情包</span>
-        <button onClick={onClose} className="text-gray-400 text-sm">关闭</button>
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-[#E85D75]" />
+          <span className="font-semibold text-sm text-[#2D2D3A]">选择表情包</span>
+        </div>
+        <motion.button
+          onClick={onClose}
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          transition={{ duration: 0.2 }}
+          className="text-[#A0A0B0] hover:text-[#6B6B7B] p-1"
+        >
+          <X size={18} />
+        </motion.button>
       </div>
 
-      {/* 情绪分组 */}
+      {/* 情绪分组标签 */}
       <div className="flex gap-1.5 mb-3 flex-wrap">
         {EMOTION_GROUPS.map((g) => (
-          <button
+          <motion.button
             key={g.emotion}
             onClick={() => setActiveGroup(g.emotion)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+            whileTap={{ scale: 0.95 }}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
               activeGroup === g.emotion
-                ? "bg-purple-500 text-white"
-                : g.color
+                ? "bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white shadow-[0_2px_8px_rgba(232,93,117,0.25)]"
+                : `${g.color}`
             }`}
           >
             {g.label}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       {/* 表情包网格 */}
-      <div className="grid grid-cols-4 gap-2">
-        {filtered.map((sticker) => (
-          <button
-            key={sticker.name}
-            onClick={() => {
-              onSelect(sticker.name);
-              onClose();
-            }}
-            className="flex flex-col items-center p-2 rounded-lg hover:bg-purple-50 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-lg mb-1">
-              {sticker.name.charAt(0)}
-            </div>
-            <span className="text-[10px] text-gray-600">{sticker.desc}</span>
-          </button>
-        ))}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-1 h-4 bg-gradient-to-b from-[#E85D75] to-[#F28C8C] rounded-full" />
+        <span className="text-xs text-[#A0A0B0]">{activeGroupLabel}表情</span>
       </div>
-    </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeGroup}
+          variants={groupContainerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-4 gap-2"
+        >
+          {filtered.map((sticker) => (
+            <motion.button
+              key={sticker.name}
+              variants={groupItemVariants}
+              whileHover={{ scale: 1.08, backgroundColor: "rgba(232, 93, 117, 0.08)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                onSelect(sticker.name);
+                onClose();
+              }}
+              className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-b from-[#FCE4EC]/50 to-[#FFF0F3]/50 hover:from-[#FCE4EC] hover:to-[#FFF0F3] transition-colors"
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E85D75]/10 to-[#F28C8C]/10 flex items-center justify-center text-lg mb-1">
+                {sticker.name.charAt(0)}
+              </div>
+              <span className="text-[10px] text-[#6B6B7B]">{sticker.desc}</span>
+            </motion.button>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+
+      <p className="text-[10px] text-[#A0A0B0] text-center mt-3">点击表情即可发送</p>
+    </motion.div>
   );
 }
