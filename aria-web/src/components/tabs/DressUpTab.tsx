@@ -1,300 +1,601 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Sparkles, Image, Smile, Scissors, Shirt, Gem, Palette, Check } from "lucide-react";
+import {
+  Shirt,
+  Palette,
+  Sparkles,
+  Crown,
+  User,
+  Check,
+  RotateCcw,
+  Save,
+  Lock,
+  Smile,
+  Scissors,
+  Flower2,
+  Glasses,
+  Image,
+  Wand2,
+  type LucideIcon,
+} from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://8.130.32.219:4360";
+// Types
+interface DressUpItem {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  unlocked: boolean;
+}
 
-const categories = [
-  { id: "avatar", label: "头像", icon: Image },
-  { id: "face", label: "脸部", icon: Smile },
-  { id: "hair", label: "发型", icon: Scissors },
-  { id: "clothing", label: "服装", icon: Shirt },
-  { id: "accessory", label: "配饰", icon: Gem },
-  { id: "background", label: "背景", icon: Palette },
+interface DressUpCategory {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: DressUpItem[];
+}
+
+interface AvatarConfig {
+  face: string;
+  hair: string;
+  outfit: string;
+  accessory: string;
+  background: string;
+  color: string;
+}
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.1, 0.25, 1] as const,
+    },
+  },
+};
+
+const optionVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  show: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1] as const,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    transition: { duration: 0.2 },
+  },
+};
+
+// Color options - dark glassmorphism theme
+const colorOptions = [
+  { id: "amber", value: "#D4A574", label: "琥珀" },
+  { id: "coral", value: "#C9956A", label: "珊瑚" },
+  { id: "rose", value: "#C44569", label: "玫瑰" },
+  { id: "lavender", value: "#B8A9C9", label: "薰衣草" },
+  { id: "sky", value: "#7EC8E3", label: "天空" },
+  { id: "mint", value: "#6B9B7A", label: "薄荷" },
+  { id: "slate", value: "#8A8880", label: "岩灰" },
+  { id: "gold", value: "#D4A574", label: "金黄" },
 ];
 
-const faceOptions = {
-  shapes: ["圆脸", "鹅蛋脸", "瓜子脸", "方脸"],
-  eyes: ["大眼", "细长", "丹凤", "杏眼"],
-  nose: ["小巧", "高挺", "自然"],
-  mouth: ["樱桃", "薄唇", "丰满"],
+// Dark theme bg gradients
+const bgGradients: Record<string, string> = {
+  amber: "radial-gradient(circle at center, rgba(212,165,116,0.08) 0%, transparent 70%)",
+  coral: "radial-gradient(circle at center, rgba(201,149,106,0.08) 0%, transparent 70%)",
+  rose: "radial-gradient(circle at center, rgba(196,69,105,0.08) 0%, transparent 70%)",
+  lavender: "radial-gradient(circle at center, rgba(184,169,201,0.06) 0%, transparent 70%)",
+  sky: "radial-gradient(circle at center, rgba(126,200,227,0.06) 0%, transparent 70%)",
+  mint: "radial-gradient(circle at center, rgba(107,155,122,0.06) 0%, transparent 70%)",
+  slate: "radial-gradient(circle at center, rgba(138,136,128,0.06) 0%, transparent 70%)",
+  gold: "radial-gradient(circle at center, rgba(212,165,116,0.08) 0%, transparent 70%)",
 };
 
-const hairOptions = {
-  styles: ["长直发", "卷发", "短发", "马尾", "双马尾", "丸子头"],
-  colors: ["黑色", "棕色", "金色", "粉色", "紫色", "蓝色"],
-};
-
-const clothingOptions = {
-  tops: ["T恤", "衬衫", "连衣裙", "卫衣", "西装"],
-  colors: ["白色", "黑色", "粉色", "蓝色", "红色"],
-};
-
-const themeColors = [
-  { id: "pink", label: "粉红", bg: "from-[#E85D75] to-[#F28C8C]" },
-  { id: "purple", label: "紫罗兰", bg: "from-[#9B6DD5] to-[#B794E0]" },
-  { id: "blue", label: "天空蓝", bg: "from-[#6B8DD6] to-[#8BA5E0]" },
-  { id: "green", label: "薄荷绿", bg: "from-[#4CAF7A] to-[#6BC194]" },
-  { id: "orange", label: "暖橙", bg: "from-[#F5A623] to-[#F7BE5E]" },
-  { id: "red", label: "珊瑚红", bg: "from-[#C44569] to-[#E85D75]" },
-  { id: "teal", label: "青绿", bg: "from-[#2AA876] to-[#4DC99A]" },
-  { id: "rose", label: "玫瑰", bg: "from-[#D4759F] to-[#E8A0C0]" },
+// Mock categories data - Lucide icons instead of emoji
+const defaultCategories: DressUpCategory[] = [
+  {
+    id: "face",
+    label: "面容",
+    icon: User,
+    items: [
+      { id: "face1", name: "标准脸", icon: Smile, unlocked: true },
+      { id: "face2", name: "圆脸", icon: User, unlocked: true },
+      { id: "face3", name: "瓜子脸", icon: Sparkles, unlocked: true },
+      { id: "face4", name: "酷酷脸", icon: Crown, unlocked: false },
+      { id: "face5", name: "萌萌脸", icon: Smile, unlocked: true },
+    ],
+  },
+  {
+    id: "hair",
+    label: "发型",
+    icon: Sparkles,
+    items: [
+      { id: "hair1", name: "短发", icon: Scissors, unlocked: true },
+      { id: "hair2", name: "长发", icon: Sparkles, unlocked: true },
+      { id: "hair3", name: "双马尾", icon: Flower2, unlocked: true },
+      { id: "hair4", name: "丸子头", icon: Crown, unlocked: false },
+      { id: "hair5", name: "波浪卷", icon: Sparkles, unlocked: true },
+      { id: "hair6", name: "公主切", icon: Crown, unlocked: false },
+    ],
+  },
+  {
+    id: "outfit",
+    label: "服装",
+    icon: Shirt,
+    items: [
+      { id: "outfit1", name: "连衣裙", icon: Shirt, unlocked: true },
+      { id: "outfit2", name: "校服", icon: Shirt, unlocked: true },
+      { id: "outfit3", name: "和服", icon: Sparkles, unlocked: false },
+      { id: "outfit4", name: "休闲装", icon: Shirt, unlocked: true },
+      { id: "outfit5", name: "礼服", icon: Crown, unlocked: false },
+    ],
+  },
+  {
+    id: "accessory",
+    label: "配饰",
+    icon: Crown,
+    items: [
+      { id: "acc1", name: "眼镜", icon: Glasses, unlocked: true },
+      { id: "acc2", name: "蝴蝶结", icon: Flower2, unlocked: true },
+      { id: "acc3", name: "项链", icon: Sparkles, unlocked: true },
+      { id: "acc4", name: "皇冠", icon: Crown, unlocked: false },
+      { id: "acc5", name: "耳机", icon: Sparkles, unlocked: true },
+    ],
+  },
+  {
+    id: "background",
+    label: "背景",
+    icon: Palette,
+    items: [
+      { id: "bg1", name: "樱花", icon: Flower2, unlocked: true },
+      { id: "bg2", name: "星空", icon: Sparkles, unlocked: true },
+      { id: "bg3", name: "海洋", icon: Image, unlocked: true },
+      { id: "bg4", name: "森林", icon: Flower2, unlocked: false },
+      { id: "bg5", name: "城市", icon: Image, unlocked: true },
+    ],
+  },
 ];
-
-const sectionVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
-};
 
 export default function DressUpTab() {
-  const [selectedCategory, setSelectedCategory] = useState("avatar");
-  const [aiAvatar, setAiAvatar] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedColor, setSelectedColor] = useState("pink");
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [categories, setCategories] = useState<DressUpCategory[]>(defaultCategories);
+  const [activeCategory, setActiveCategory] = useState("face");
+  const [config, setConfig] = useState<AvatarConfig>({
+    face: "face1",
+    hair: "hair1",
+    outfit: "outfit1",
+    accessory: "acc1",
+    background: "bg1",
+    color: "amber",
+  });
+  const [originalConfig, setOriginalConfig] = useState<AvatarConfig>(config);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const handleUploadAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAiAvatar(reader.result as string);
-      localStorage.setItem("aria_ai_avatar", reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  // Load saved config
+  useEffect(() => {
+    const saved = localStorage.getItem("aria_avatar_config");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setConfig((prev) => ({ ...prev, ...parsed }));
+        setOriginalConfig((prev) => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error("解析装扮配置失败:", e);
+      }
+    }
+
+    // Fetch from API if logged in
+    const token = localStorage.getItem("aria_token");
+    if (token) {
+      fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://8.130.32.219"}/avatar/config`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error("获取失败");
+        })
+        .then((data) => {
+          if (data) {
+            setConfig((prev) => ({ ...prev, ...data }));
+            setOriginalConfig((prev) => ({ ...prev, ...data }));
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
+
+  // Track changes
+  useEffect(() => {
+    setHasChanges(
+      JSON.stringify(config) !== JSON.stringify(originalConfig)
+    );
+  }, [config, originalConfig]);
+
+  const handleSelect = (categoryId: string, itemId: string) => {
+    setConfig((prev) => ({ ...prev, [categoryId]: itemId }));
   };
 
-  const handleGenerateAvatar = async () => {
-    setIsGenerating(true);
+  const handleColorChange = (colorId: string) => {
+    setConfig((prev) => ({ ...prev, color: colorId }));
+  };
+
+  const handleReset = () => {
+    setConfig(originalConfig);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setAiAvatar(null);
+      localStorage.setItem("aria_avatar_config", JSON.stringify(config));
+
+      const token = localStorage.getItem("aria_token");
+      if (token) {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://8.130.32.219"}/avatar/config`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(config),
+          }
+        );
+      }
+
+      setOriginalConfig(config);
+      setHasChanges(false);
     } catch (e) {
-      console.error("生成失败:", e);
+      console.error("保存失败:", e);
     } finally {
-      setIsGenerating(false);
+      setSaving(false);
     }
   };
 
-  const toggleOption = (category: string, value: string) => {
-    setSelectedOptions((prev) => ({
-      ...prev,
-      [category]: prev[category] === value ? "" : value,
-    }));
+  const getSelectedItem = (categoryId: string) => {
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return null;
+    return cat.items.find((i) => i.id === (config as any)[categoryId]);
   };
+
+  const currentCategory = categories.find((c) => c.id === activeCategory);
+  const activeColor = colorOptions.find((c) => c.id === config.color);
 
   return (
     <motion.div
-      className="p-4 bg-[#FFF8F5] min-h-[calc(100dvh-60px)]"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      className="min-h-[calc(100vh-60px)] bg-[#0C0C14] pb-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
     >
-      <motion.h1
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="font-bold text-lg mb-4 text-[#2D2D3A]"
-      >
-        装扮
-      </motion.h1>
+      {/* Preview Area */}
+      <motion.div variants={itemVariants} className="mx-4 mt-4">
+        <div
+          className="relative overflow-hidden rounded-[20px] p-6 flex flex-col items-center border border-[rgba(255,255,255,0.06)]"
+          style={{
+            background: "#0C0C14",
+            backgroundImage:
+              bgGradients[config.color] || bgGradients.amber,
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.3)",
+          }}
+        >
+          {/* Decorative elements */}
+          <div
+            className="absolute top-3 left-3 w-8 h-8 rounded-full"
+            style={{ background: "rgba(255,255,255,0.03)" }}
+          />
+          <div
+            className="absolute bottom-4 right-4 w-12 h-12 rounded-full"
+            style={{ background: "rgba(255,255,255,0.02)" }}
+          />
+          <div
+            className="absolute top-8 right-6 w-4 h-4 rounded-full"
+            style={{ background: "rgba(212,165,116,0.06)" }}
+          />
 
-      {/* 预览区域 */}
-      <motion.div
-        variants={sectionVariants}
-        initial="hidden"
-        animate="show"
-        className="bg-gradient-to-b from-[#FCE4EC]/60 to-[#FFF0F3]/40 rounded-[20px] p-6 mb-4 border border-[rgba(0,0,0,0.03)] shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
-      >
-        <div className="flex flex-col items-center">
+          {/* Avatar Preview */}
           <motion.div
-            className="relative group"
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="relative z-10"
+            animate={{ y: [0, -6, 0] }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut" as const,
+            }}
           >
-            {aiAvatar ? (
-              <img
-                src={aiAvatar}
-                alt="AI伴侣"
-                className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-[0_4px_16px_rgba(232,93,117,0.2)]"
-              />
-            ) : (
-              <div className="w-36 h-36 rounded-full bg-gradient-to-br from-[#E85D75] to-[#F28C8C] flex items-center justify-center text-6xl border-4 border-white shadow-[0_4px_16px_rgba(232,93,117,0.2)] relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
-                <Sparkles size={48} className="text-white/80" />
-              </div>
-            )}
-            <label className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity backdrop-blur-[4px]">
-              <Camera size={28} className="text-white" />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleUploadAvatar}
-              />
-            </label>
-          </motion.div>
-          <p className="text-sm text-[#6B6B7B] mt-3 font-medium">AI伴侣头像</p>
-          <div className="flex gap-2 mt-3">
-            <motion.button
-              onClick={() => fileInputRef.current?.click()}
-              whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-white border border-[#E5E5EB] rounded-[14px] text-sm font-medium hover:bg-[#FFF0F3] hover:border-[#E85D75] transition-all flex items-center gap-1.5 text-[#2D2D3A]"
+            {/* Glow ring */}
+            <div
+              className="absolute inset-0 rounded-full blur-xl opacity-30"
+              style={{
+                background: `radial-gradient(circle, ${
+                  activeColor?.value || "#D4A574"
+                } 0%, transparent 70%)`,
+                transform: "scale(1.3)",
+              }}
+            />
+            <div
+              className="relative w-[144px] h-[144px] rounded-full flex items-center justify-center border-2 shadow-lg"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                backdropFilter: "blur(24px)",
+                borderColor: "rgba(212,165,116,0.2)",
+              }}
             >
-              <Camera size={14} />
-              上传头像
+              <Sparkles
+                size={56}
+                className="text-[#D4A574]"
+                style={{
+                  filter: "drop-shadow(0 0 8px rgba(212,165,116,0.3))",
+                }}
+              />
+            </div>
+            {/* Status indicator */}
+            <div
+              className="absolute bottom-2 right-2 w-6 h-6 rounded-full border-2 shadow-md"
+              style={{
+                background: "#6B9B7A",
+                borderColor: "#0C0C14",
+              }}
+            />
+          </motion.div>
+
+          {/* Avatar name */}
+          <div className="relative z-10 mt-4 text-center">
+            <h3 className="text-[16px] font-bold text-[#E8E6E3]">
+              我的AI伴侣
+            </h3>
+            <p className="text-[12px] text-[#8A8880] mt-0.5">
+              {getSelectedItem("face")?.name} ·{" "}
+              {getSelectedItem("hair")?.name} ·{" "}
+              {getSelectedItem("outfit")?.name}
+            </p>
+          </div>
+
+          {/* Quick action buttons */}
+          <div className="relative z-10 flex gap-3 mt-4">
+            <motion.button
+              onClick={handleReset}
+              disabled={!hasChanges}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-[12px] text-[12px] font-medium text-[#8A8880] disabled:opacity-40 transition-opacity border border-[rgba(255,255,255,0.06)]"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                backdropFilter: "blur(12px)",
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <RotateCcw size={14} />
+              重置
             </motion.button>
             <motion.button
-              onClick={handleGenerateAvatar}
-              disabled={isGenerating}
+              onClick={handleSave}
+              disabled={!hasChanges || saving}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-[12px] text-[12px] font-semibold text-[#0C0C14] disabled:opacity-50 transition-all"
+              style={{
+                background: "linear-gradient(135deg, #D4A574, #C9956A)",
+                boxShadow: "0 2px 8px rgba(212, 165, 116, 0.25)",
+              }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white rounded-[14px] text-sm font-medium shadow-[0_4px_16px_rgba(232,93,117,0.25)] disabled:opacity-50 transition-all flex items-center gap-1.5"
+              whileHover={{ y: -1 }}
             >
-              {isGenerating ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                />
-              ) : (
-                <Sparkles size={14} />
-              )}
-              {isGenerating ? "生成中..." : "AI生成"}
+              <Save size={14} />
+              {saving ? "保存中..." : "保存"}
             </motion.button>
           </div>
+
+          {/* AI Generate Button */}
+          <motion.button
+            className="relative z-10 flex items-center gap-1.5 px-5 py-2 rounded-full text-[12px] font-semibold text-[#0C0C14] mt-3"
+            style={{
+              background: "linear-gradient(135deg, #D4A574, #C9956A)",
+              boxShadow: "0 2px 12px rgba(212, 165, 116, 0.3)",
+            }}
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ y: -1, boxShadow: "0 4px 16px rgba(212, 165, 116, 0.4)" }}
+          >
+            <Wand2 size={14} />
+            AI生成
+          </motion.button>
         </div>
       </motion.div>
 
-      {/* 主题色彩 */}
-      <motion.div variants={sectionVariants} initial="hidden" animate="show" className="mb-4">
-        <h3 className="text-sm font-semibold text-[#2D2D3A] mb-2">主题色彩</h3>
-        <div className="flex gap-2 flex-wrap">
-          {themeColors.map((color) => (
+      {/* Color Selector */}
+      <motion.div variants={itemVariants} className="mx-4 mt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Palette size={16} className="text-[#D4A574]" />
+          <span className="text-[15px] font-semibold text-[#E8E6E3]">
+            主题色彩
+          </span>
+        </div>
+        <div className="flex gap-3 flex-wrap">
+          {colorOptions.map((color) => (
             <motion.button
               key={color.id}
-              onClick={() => setSelectedColor(color.id)}
-              whileTap={{ scale: 0.9 }}
-              className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.bg} ${
-                selectedColor === color.id
-                  ? "ring-2 ring-offset-2 ring-[#E85D75] shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
-                  : "opacity-70 hover:opacity-100"
-              } transition-all`}
-              title={color.label}
-            />
+              onClick={() => handleColorChange(color.id)}
+              className="relative flex flex-col items-center gap-1"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-shadow duration-200 ${
+                  config.color === color.id
+                    ? "shadow-[0_0_0_3px_#0C0C14,0_0_0_5px_#D4A574]"
+                    : "shadow-md hover:shadow-lg"
+                }`}
+                style={{ backgroundColor: color.value }}
+              >
+                {config.color === color.id && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 25,
+                    }}
+                  >
+                    <Check size={16} className="text-[#0C0C14]" strokeWidth={3} />
+                  </motion.div>
+                )}
+              </div>
+              <span className="text-[10px] text-[#5A5854]">{color.label}</span>
+            </motion.button>
           ))}
         </div>
       </motion.div>
 
-      {/* 分类选择 */}
-      <motion.div variants={sectionVariants} initial="hidden" animate="show" className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-thin">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          return (
-            <motion.button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all duration-200 shrink-0 ${
-                selectedCategory === cat.id
-                  ? "bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white shadow-[0_2px_8px_rgba(232,93,117,0.25)] font-medium"
-                  : "bg-white border border-[#E5E5EB] text-[#6B6B7B] hover:border-[#E85D75] hover:text-[#E85D75]"
-              }`}
-            >
-              <Icon size={14} />
-              <span>{cat.label}</span>
-            </motion.button>
-          );
-        })}
+      {/* Category Selector - Pill shaped with amber gradient active */}
+      <motion.div variants={itemVariants} className="mx-4 mt-5">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            const isActive = activeCategory === cat.id;
+            return (
+              <motion.button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`relative flex items-center gap-1.5 px-4 py-2.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors duration-200 ${
+                  isActive
+                    ? "text-[#0C0C14]"
+                    : "text-[#8A8880] border border-[rgba(255,255,255,0.06)] hover:text-[#D4A574]"
+                }`}
+                style={
+                  isActive
+                    ? {
+                        background: "linear-gradient(135deg, #D4A574, #C9956A)",
+                        boxShadow: "0 2px 8px rgba(212, 165, 116, 0.25)",
+                        border: "none",
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.04)",
+                      }
+                }
+                whileTap={{ scale: 0.95 }}
+              >
+                <Icon size={15} />
+                {cat.label}
+              </motion.button>
+            );
+          })}
+        </div>
       </motion.div>
 
-      {/* 选项区域 */}
+      {/* Options Grid */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={selectedCategory}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          key={activeCategory}
+          className="mx-4 mt-3"
+          variants={optionVariants}
+          initial="hidden"
+          animate="show"
+          exit="exit"
         >
-          {selectedCategory === "face" && (
-            <div className="space-y-4">
-              <OptionGroup label="脸型" options={faceOptions.shapes} selected={selectedOptions["face-shape"]} onSelect={(v) => toggleOption("face-shape", v)} />
-              <OptionGroup label="眼睛" options={faceOptions.eyes} selected={selectedOptions["face-eyes"]} onSelect={(v) => toggleOption("face-eyes", v)} />
-              <OptionGroup label="鼻子" options={faceOptions.nose} selected={selectedOptions["face-nose"]} onSelect={(v) => toggleOption("face-nose", v)} />
-              <OptionGroup label="嘴巴" options={faceOptions.mouth} selected={selectedOptions["face-mouth"]} onSelect={(v) => toggleOption("face-mouth", v)} />
-            </div>
-          )}
-
-          {selectedCategory === "hair" && (
-            <div className="space-y-4">
-              <OptionGroup label="发型" options={hairOptions.styles} selected={selectedOptions["hair-style"]} onSelect={(v) => toggleOption("hair-style", v)} />
-              <OptionGroup label="发色" options={hairOptions.colors} selected={selectedOptions["hair-color"]} onSelect={(v) => toggleOption("hair-color", v)} />
-            </div>
-          )}
-
-          {selectedCategory === "clothing" && (
-            <div className="space-y-4">
-              <OptionGroup label="上衣" options={clothingOptions.tops} selected={selectedOptions["clothing-top"]} onSelect={(v) => toggleOption("clothing-top", v)} />
-              <OptionGroup label="颜色" options={clothingOptions.colors} selected={selectedOptions["clothing-color"]} onSelect={(v) => toggleOption("clothing-color", v)} />
-            </div>
-          )}
-
-          {(selectedCategory === "avatar" || selectedCategory === "accessory" || selectedCategory === "background") && (
-            <div className="text-center text-[#A0A0B0] py-8">
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="text-4xl mb-3"
-              >
-                {selectedCategory === "avatar" ? "✨" : selectedCategory === "accessory" ? "💍" : "🎨"}
-              </motion.div>
-              <p className="text-sm">
-                {selectedCategory === "avatar" ? "头像区域上方可上传或生成" : selectedCategory === "accessory" ? "配饰商店即将开放" : "背景商店即将开放"}
-              </p>
-              <p className="text-xs text-[#A0A0B0] mt-1">敬请期待</p>
-            </div>
-          )}
+          <div className="grid grid-cols-3 gap-2.5">
+            {currentCategory?.items.map((item, index) => {
+              const isSelected = (config as any)[activeCategory] === item.id;
+              const ItemIcon = item.icon;
+              return (
+                <motion.button
+                  key={item.id}
+                  onClick={() =>
+                    item.unlocked && handleSelect(activeCategory, item.id)
+                  }
+                  className={`relative flex flex-col items-center gap-2 p-3.5 rounded-[14px] transition-all duration-200 border ${
+                    isSelected
+                      ? "border-[rgba(212,165,116,0.3)]"
+                      : item.unlocked
+                      ? "border-[rgba(255,255,255,0.04)] hover:border-[rgba(212,165,116,0.15)]"
+                      : "border-[rgba(255,255,255,0.04)] opacity-50 cursor-not-allowed"
+                  }`}
+                  style={{
+                    background: isSelected
+                      ? "rgba(212,165,116,0.08)"
+                      : "rgba(255,255,255,0.04)",
+                    backdropFilter: "blur(12px)",
+                  }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.3,
+                    delay: index * 0.04,
+                    ease: [0.25, 0.1, 0.25, 1] as const,
+                  }}
+                  whileHover={item.unlocked ? { y: -2 } : {}}
+                  whileTap={item.unlocked ? { scale: 0.96 } : {}}
+                >
+                  <ItemIcon
+                    size={24}
+                    className={
+                      isSelected ? "text-[#D4A574]" : item.unlocked ? "text-[#8A8880]" : "text-[#5A5854]"
+                    }
+                  />
+                  <span
+                    className={`text-[11px] font-medium ${
+                      isSelected
+                        ? "text-[#D4A574]"
+                        : item.unlocked
+                        ? "text-[#E8E6E3]"
+                        : "text-[#5A5854]"
+                    }`}
+                  >
+                    {item.name}
+                  </span>
+                  {!item.unlocked && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center rounded-[14px]"
+                      style={{ background: "rgba(12,12,20,0.5)" }}
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ background: "rgba(255,255,255,0.06)" }}
+                      >
+                        <Lock size={12} className="text-[#5A5854]" />
+                      </div>
+                    </div>
+                  )}
+                  {isSelected && item.unlocked && (
+                    <motion.div
+                      className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg, #D4A574, #C9956A)" }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 25,
+                      }}
+                    >
+                      <Check size={10} className="text-[#0C0C14]" strokeWidth={3} />
+                    </motion.div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
         </motion.div>
       </AnimatePresence>
-    </motion.div>
-  );
-}
 
-function OptionGroup({ label, options, selected, onSelect }: {
-  label: string;
-  options: string[];
-  selected?: string;
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <div>
-      <label className="text-sm font-semibold text-[#2D2D3A] mb-2 block">{label}</label>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => {
-          const isSelected = selected === opt;
-          return (
-            <motion.button
-              key={opt}
-              onClick={() => onSelect(opt)}
-              whileTap={{ scale: 0.95 }}
-              className={`px-3 py-1.5 rounded-[14px] text-sm transition-all duration-200 ${
-                isSelected
-                  ? "bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white shadow-[0_2px_8px_rgba(232,93,117,0.25)] font-medium"
-                  : "bg-[#F7F7F9] text-[#2D2D3A] hover:bg-[#FCE4EC] hover:text-[#E85D75]"
-              }`}
-            >
-              <span className="flex items-center gap-1">
-                {isSelected && <Check size={12} />}
-                {opt}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
-    </div>
+      {/* Bottom padding */}
+      <div className="h-6" />
+    </motion.div>
   );
 }
