@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Users, Palette, Sparkles, User } from "lucide-react";
 import LoginModal from "../components/LoginModal";
 import ChatTab from "../components/tabs/ChatTab";
@@ -17,6 +18,12 @@ const tabs = [
   { id: "profile", label: "我的", icon: User, requireAuth: false },
 ];
 
+const tabVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
+};
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState("chat");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -24,7 +31,6 @@ export default function Home() {
   const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {
-    // 检查是否已登录
     const token = localStorage.getItem("aria_token");
     const user = localStorage.getItem("aria_user");
     if (token && user) {
@@ -90,7 +96,6 @@ export default function Home() {
   };
 
   const handleForgotPassword = async (email: string) => {
-    // 忘记密码逻辑
     alert("重置邮件已发送到 " + email);
   };
 
@@ -103,25 +108,35 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto">
-      {/* 内容区域 */}
-      <main className="flex-1 overflow-y-auto">
-        {activeTab === "chat" && <ChatTab />}
-        {activeTab === "relationship" && <RelationshipTab />}
-        {activeTab === "dressup" && <DressUpTab />}
-        {activeTab === "dynamic" && <DynamicTab />}
-        {activeTab === "profile" && (
-          <ProfileTab
-            isLoggedIn={isLoggedIn}
-            userInfo={userInfo}
-            onLogin={() => setShowLoginModal(true)}
-            onLogout={handleLogout}
-          />
-        )}
+    <div className="flex flex-col h-[100dvh] max-w-md mx-auto bg-[#FFF8F5]">
+      <main className="flex-1 overflow-y-auto scrollbar-thin relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            variants={tabVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            className="h-full"
+          >
+            {activeTab === "chat" && <ChatTab />}
+            {activeTab === "relationship" && <RelationshipTab />}
+            {activeTab === "dressup" && <DressUpTab />}
+            {activeTab === "dynamic" && <DynamicTab />}
+            {activeTab === "profile" && (
+              <ProfileTab
+                isLoggedIn={isLoggedIn}
+                userInfo={userInfo}
+                onLogin={() => setShowLoginModal(true)}
+                onLogout={handleLogout}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* 底部导航栏 */}
-      <nav className="flex border-t border-gray-100 bg-white/80 backdrop-blur-sm">
+      <nav className="flex h-[60px] bg-white/72 backdrop-blur-[20px] saturate-[180%] border-t border-[rgba(0,0,0,0.05)] z-50 pb-safe shrink-0 relative">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -130,25 +145,43 @@ export default function Home() {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`flex-1 flex flex-col items-center py-2 transition-colors relative ${
-                isActive ? "text-indigo-500" : "text-gray-400 hover:text-gray-600"
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
+                isActive ? "text-[#E85D75]" : "text-[#A0A0B0] hover:text-[#6B6B7B]"
               }`}
             >
-              <div className="relative">
-                <Icon size={22} />
-                {isLocked && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-[6px] text-white">🔒</span>
-                  </div>
-                )}
-              </div>
-              <span className="text-[10px] mt-1 font-medium">{tab.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute top-0 w-8 h-[3px] bg-gradient-to-r from-[#E85D75] to-[#F28C8C] rounded-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              <motion.div
+                whileTap={{ scale: 0.85 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                />
+              </motion.div>
+              <motion.span
+                className="text-[10px] font-medium"
+                animate={{ opacity: isActive ? 1 : 0.7 }}
+                transition={{ duration: 0.15 }}
+              >
+                {tab.label}
+              </motion.span>
+              {isLocked && (
+                <div className="absolute top-1 right-3 w-3 h-3 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-[6px] text-white">🔒</span>
+                </div>
+              )}
             </button>
           );
         })}
       </nav>
 
-      {/* 登录弹窗 */}
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
