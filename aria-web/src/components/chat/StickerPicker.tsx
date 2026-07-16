@@ -1,139 +1,225 @@
+/**
+ * 表情选择器 - 聊天时选择发送的表情
+ * 深色玻璃拟态风格，使用 Lucide 图标代替 emoji
+ */
+
 "use client";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles } from "lucide-react";
+import {
+  X,
+  Smile,
+  Heart,
+  Frown,
+  Zap,
+  Sun,
+  Moon,
+  Star,
+  Flame,
+  Ghost,
+  Coffee,
+  Music,
+  ThumbsUp,
+  Droplets,
+} from "lucide-react";
 
-interface StickerCategory {
-  name: string;
-  emotion: string;
-  desc: string;
+// 表情项接口
+interface StickerItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-const STICKER_CATEGORIES: StickerCategory[] = [
-  { name: "撒花", emotion: "positive", desc: "庆祝" },
-  { name: "比心", emotion: "positive", desc: "喜欢" },
-  { name: "偷笑", emotion: "positive", desc: "好笑" },
-  { name: "委屈", emotion: "negative", desc: "小委屈" },
-  { name: "哭泣", emotion: "negative", desc: "伤心" },
-  { name: "抱抱", emotion: "negative", desc: "安慰" },
-  { name: "哼", emotion: "angry", desc: "不满" },
-  { name: "歪头", emotion: "cute", desc: "可爱" },
-  { name: "嘟嘴", emotion: "cute", desc: "撒娇" },
-  { name: "蹭蹭", emotion: "cute", desc: "亲近" },
-  { name: "早安", emotion: "daily", desc: "问候" },
-  { name: "晚安", emotion: "daily", desc: "道别" },
-  { name: "吐舌头", emotion: "playful", desc: "调皮" },
-  { name: "偷看", emotion: "playful", desc: "好奇" },
+// 表情分组接口
+interface StickerGroup {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  items: StickerItem[];
+}
+
+// 表情分组数据 — 全部使用 Lucide 图标
+const STICKER_GROUPS: StickerGroup[] = [
+  {
+    id: "happy",
+    label: "开心",
+    icon: Smile,
+    items: [
+      { id: "smile", label: "微笑", icon: Smile },
+      { id: "heart", label: "喜欢", icon: Heart },
+      { id: "star", label: "星星", icon: Star },
+      { id: "thumbs", label: "点赞", icon: ThumbsUp },
+      { id: "sun", label: "阳光", icon: Sun },
+      { id: "music", label: "音乐", icon: Music },
+    ],
+  },
+  {
+    id: "sad",
+    label: "难过",
+    icon: Frown,
+    items: [
+      { id: "frown", label: "难过", icon: Frown },
+      { id: "rain", label: "下雨", icon: Droplets },
+      { id: "moon", label: "月夜", icon: Moon },
+      { id: "coffee", label: "咖啡", icon: Coffee },
+    ],
+  },
+  {
+    id: "energy",
+    label: "活力",
+    icon: Zap,
+    items: [
+      { id: "zap", label: "闪电", icon: Zap },
+      { id: "flame", label: "火焰", icon: Flame },
+      { id: "ghost", label: "调皮", icon: Ghost },
+    ],
+  },
 ];
-
-const EMOTION_GROUPS = [
-  { emotion: "positive", label: "开心", color: "bg-[#FEF9E7] text-[#B8860B]" },
-  { emotion: "negative", label: "难过", color: "bg-[#E8F4FD] text-[#4A90D9]" },
-  { emotion: "angry", label: "生气", color: "bg-[#FDEDEC] text-[#C0392B]" },
-  { emotion: "cute", label: "撒娇", color: "bg-[#FCE4EC] text-[#C44569]" },
-  { emotion: "daily", label: "日常", color: "bg-[#F5F5F5] text-[#666]" },
-  { emotion: "playful", label: "调皮", color: "bg-[#F3E5F5] text-[#7B1FA2]" },
-];
-
-const groupContainerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.03 } },
-};
-
-const groupItemVariants = {
-  hidden: { opacity: 0, scale: 0.8 },
-  show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 20 } },
-};
 
 interface StickerPickerProps {
-  onSelect: (category: string) => void;
+  onSelect: (stickerId: string) => void;
   onClose: () => void;
 }
 
-export default function StickerPicker({ onSelect, onClose }: StickerPickerProps) {
-  const [activeGroup, setActiveGroup] = useState("positive");
+// 动画配置
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03,
+      delayChildren: 0.05,
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.15,
+    },
+  },
+};
 
-  const filtered = STICKER_CATEGORIES.filter((s) => s.emotion === activeGroup);
-  const activeGroupLabel = EMOTION_GROUPS.find((g) => g.emotion === activeGroup)?.label || "";
+const stickerItemVariants = {
+  hidden: { opacity: 0, scale: 0.8, y: 10 },
+  show: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
+
+const groupTransitionVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: {
+      duration: 0.15,
+    },
+  },
+};
+
+export default function StickerPicker({
+  onSelect,
+  onClose,
+}: StickerPickerProps) {
+  const [activeGroup, setActiveGroup] = useState("happy");
+
+  const currentGroup = STICKER_GROUPS.find((g) => g.id === activeGroup);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.98 }}
       transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-      className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.06)] p-4 shadow-[0_8px_24px_rgba(45,45,58,0.12)]"
+      className="bg-[#14141E] rounded-[20px] border border-[rgba(255,255,255,0.08)] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
     >
+      {/* 头部 */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-[#E85D75]" />
-          <span className="font-semibold text-sm text-[#2D2D3A]">选择表情包</span>
-        </div>
+        <span className="font-semibold text-sm text-[#E8E6E3]">
+          选择表情
+        </span>
         <motion.button
           onClick={onClose}
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          transition={{ duration: 0.2 }}
-          className="text-[#A0A0B0] hover:text-[#6B6B7B] p-1"
+          className="text-[#5A5854] hover:text-[#8A8880] transition-colors p-1 rounded-lg hover:bg-[rgba(255,255,255,0.04)]"
+          whileTap={{ scale: 0.95 }}
         >
-          <X size={18} />
+          <X size={16} />
         </motion.button>
       </div>
 
-      {/* 情绪分组标签 */}
+      {/* 分组标签 — pill 形状 */}
       <div className="flex gap-1.5 mb-3 flex-wrap">
-        {EMOTION_GROUPS.map((g) => (
-          <motion.button
-            key={g.emotion}
-            onClick={() => setActiveGroup(g.emotion)}
-            whileTap={{ scale: 0.95 }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-              activeGroup === g.emotion
-                ? "bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white shadow-[0_2px_8px_rgba(232,93,117,0.25)]"
-                : `${g.color}`
-            }`}
-          >
-            {g.label}
-          </motion.button>
-        ))}
+        {STICKER_GROUPS.map((g) => {
+          const GroupIcon = g.icon;
+          const isActive = activeGroup === g.id;
+          return (
+            <motion.button
+              key={g.id}
+              onClick={() => setActiveGroup(g.id)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                isActive
+                  ? "bg-gradient-to-r from-[#D4A574] to-[#C9956A] text-[#0C0C14] shadow-[0_2px_8px_rgba(212,165,116,0.25)]"
+                  : "bg-[rgba(255,255,255,0.04)] text-[#8A8880] hover:bg-[rgba(255,255,255,0.08)] hover:text-[#E8E6E3]"
+              }`}
+              whileTap={{ scale: 0.95 }}
+              layout
+            >
+              <GroupIcon size={12} />
+              {g.label}
+            </motion.button>
+          );
+        })}
       </div>
 
-      {/* 表情包网格 */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-1 h-4 bg-gradient-to-b from-[#E85D75] to-[#F28C8C] rounded-full" />
-        <span className="text-xs text-[#A0A0B0]">{activeGroupLabel}表情</span>
-      </div>
-
+      {/* 表情网格 */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeGroup}
-          variants={groupContainerVariants}
+          className="grid grid-cols-4 gap-2"
+          variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-4 gap-2"
+          exit="exit"
         >
-          {filtered.map((sticker) => (
-            <motion.button
-              key={sticker.name}
-              variants={groupItemVariants}
-              whileHover={{ scale: 1.08, backgroundColor: "rgba(232, 93, 117, 0.08)" }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                onSelect(sticker.name);
-                onClose();
-              }}
-              className="flex flex-col items-center p-3 rounded-xl bg-gradient-to-b from-[#FCE4EC]/50 to-[#FFF0F3]/50 hover:from-[#FCE4EC] hover:to-[#FFF0F3] transition-colors"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E85D75]/10 to-[#F28C8C]/10 flex items-center justify-center text-lg mb-1">
-                {sticker.name.charAt(0)}
-              </div>
-              <span className="text-[10px] text-[#6B6B7B]">{sticker.desc}</span>
-            </motion.button>
-          ))}
+          {currentGroup?.items.map((item) => {
+            const ItemIcon = item.icon;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => {
+                  onSelect(item.id);
+                  onClose();
+                }}
+                className="flex flex-col items-center p-2.5 rounded-xl hover:bg-[rgba(255,255,255,0.06)] transition-colors duration-150 border border-transparent hover:border-[rgba(255,255,255,0.08)]"
+                variants={stickerItemVariants}
+                whileTap={{ scale: 0.92 }}
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[rgba(212,165,116,0.15)] to-[rgba(201,149,106,0.08)] flex items-center justify-center mb-1 shadow-[0_1px_3px_rgba(212,165,116,0.1)]">
+                  <ItemIcon size={18} className="text-[#D4A574]" />
+                </div>
+                <span className="text-[10px] text-[#8A8880] font-medium">
+                  {item.label}
+                </span>
+              </motion.button>
+            );
+          })}
         </motion.div>
       </AnimatePresence>
-
-      <p className="text-[10px] text-[#A0A0B0] text-center mt-3">点击表情即可发送</p>
     </motion.div>
   );
 }
