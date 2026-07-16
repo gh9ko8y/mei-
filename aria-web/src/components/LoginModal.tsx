@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Eye, EyeOff, Mail, Lock, User, Sparkles } from "lucide-react";
+import { X, Check, Shield } from "lucide-react";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -21,24 +21,69 @@ interface RegisterData {
 
 type ModalView = "login" | "register" | "forgot";
 
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 80 : -80,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
+// 动画配置
+const overlayVariants = {
+  hidden: { opacity: 0 },
+  show: {
     opacity: 1,
+    transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
   },
-  exit: (direction: number) => ({
-    x: direction < 0 ? 80 : -80,
+  exit: {
     opacity: 0,
-  }),
+    transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
+  },
 };
 
-export default function LoginModal({ isOpen, onClose, onLogin, onRegister, onForgotPassword }: LoginModalProps) {
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 20 },
+  show: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    y: 20,
+    transition: {
+      duration: 0.2,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
+
+const formVariants = {
+  hidden: { opacity: 0, x: 30 },
+  show: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: -30,
+    transition: {
+      duration: 0.2,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
+};
+
+export default function LoginModal({
+  isOpen,
+  onClose,
+  onLogin,
+  onRegister,
+  onForgotPassword,
+}: LoginModalProps) {
   const [view, setView] = useState<ModalView>("login");
-  const [direction, setDirection] = useState(1);
   const [ariaId, setAriaId] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -48,24 +93,20 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister, onFor
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
-
-  const switchView = (newView: ModalView, dir: number) => {
-    setDirection(dir);
-    setView(newView);
-  };
 
   const handleSendCode = async () => {
     if (!email) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://8.130.32.219:4360"}/auth/send-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://8.130.32.219:4360"}/auth/send-code`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
       const data = await res.json();
       if (data.code) {
         setCodeSent(true);
@@ -89,14 +130,12 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister, onFor
     setCaptchaVerified(true);
   };
 
-  const handleLoginClick = () => {
+  const handleLogin = () => {
     if (!ariaId || !password) return;
-    setIsLoading(true);
     onLogin(ariaId, password);
-    setIsLoading(false);
   };
 
-  const handleRegisterClick = () => {
+  const handleRegister = async () => {
     if (!username || !email || !password || !confirmPassword || !code) return;
     if (password !== confirmPassword) {
       alert("两次密码不一致");
@@ -109,7 +148,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister, onFor
     onRegister({ username, email, password, code });
   };
 
-  const handleForgotClick = () => {
+  const handleForgotPassword = () => {
     if (!email) return;
     onForgotPassword(email);
   };
@@ -123,213 +162,185 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister, onFor
     setCodeSent(false);
     setCountdown(0);
     setCaptchaVerified(false);
-    setShowPassword(false);
   };
 
+  const switchView = (newView: ModalView) => {
+    resetForm();
+    setView(newView);
+  };
+
+  // 输入框通用样式
+  const inputClass =
+    "w-full px-4 py-3 bg-[rgba(255,255,255,0.06)] rounded-[14px] text-sm outline-none text-[#E8E6E3] placeholder:text-[#5A5854] border border-[rgba(255,255,255,0.08)] transition-all duration-200 focus:border-[#D4A574] focus:bg-[rgba(255,255,255,0.08)] focus:shadow-[0_0_0_3px_rgba(212,165,116,0.1)]";
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-[8px] flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 350, damping: 25 }}
-        className="bg-white rounded-[24px] w-full max-w-sm shadow-[0_8px_24px_rgba(45,45,58,0.12)] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Decorative top bar */}
-        <div className="flex justify-center pt-4 pb-2">
-          <div className="w-10 h-1 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] rounded-full" />
-        </div>
-
-        {/* Close button */}
-        <div className="flex justify-end px-4 -mt-2">
-          <motion.button
-            onClick={onClose}
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            transition={{ duration: 0.2 }}
-            className="text-[#A0A0B0] hover:text-[#6B6B7B] p-1"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black/60 backdrop-blur-[12px] flex items-center justify-center z-50 p-4"
+          variants={overlayVariants}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          onClick={onClose}
+        >
+          <motion.div
+            className="bg-[#14141E] rounded-[24px] w-full max-w-sm p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-[rgba(255,255,255,0.08)] relative overflow-hidden"
+            variants={cardVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            onClick={(e) => e.stopPropagation()}
           >
-            <X size={20} />
-          </motion.button>
-        </div>
+            {/* 顶部装饰条 */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D4A574] to-[#C9956A]" />
 
-        <div className="px-6 pb-6 -mt-2">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={view}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-            >
+            {/* 关闭按钮 */}
+            <div className="flex justify-end mb-2">
+              <motion.button
+                onClick={onClose}
+                className="text-[#5A5854] hover:text-[#8A8880] transition-colors p-1"
+                whileHover={{ rotate: 90 }}
+                transition={{ duration: 0.25 }}
+              >
+                <X size={20} />
+              </motion.button>
+            </div>
+
+            {/* 标题 */}
+            <h2 className="text-[18px] font-semibold text-center mb-6 text-[#E8E6E3]">
+              {view === "login"
+                ? "登录"
+                : view === "register"
+                  ? "注册"
+                  : "忘记密码"}
+            </h2>
+
+            {/* 表单内容 */}
+            <AnimatePresence mode="wait">
+              {/* 登录表单 */}
               {view === "login" && (
-                <div className="space-y-4">
-                  <div className="text-center mb-6">
-                    <h2 className="text-[18px] font-semibold text-[#2D2D3A]">欢迎回来</h2>
-                    <p className="text-xs text-[#6B6B7B] mt-1">登录你的 Aria 账号</p>
-                  </div>
-
-                  <div className="relative">
-                    <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0]" />
-                    <input
-                      type="text"
-                      placeholder="Aria号"
-                      value={ariaId}
-                      onChange={(e) => setAriaId(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0]" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="密码"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-10 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
-                    />
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-[#6B6B7B]"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-
+                <motion.div
+                  key="login"
+                  variants={formVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="space-y-4"
+                >
+                  <input
+                    type="text"
+                    placeholder="Aria号"
+                    value={ariaId}
+                    onChange={(e) => setAriaId(e.target.value)}
+                    className={inputClass}
+                  />
+                  <input
+                    type="password"
+                    placeholder="密码"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                  />
                   <motion.button
-                    onClick={handleLoginClick}
-                    disabled={isLoading || !ariaId || !password}
+                    onClick={handleLogin}
+                    className="w-full py-3 bg-gradient-to-r from-[#D4A574] to-[#C9956A] text-[#0C0C14] rounded-[14px] font-semibold text-sm shadow-[0_4px_16px_rgba(212,165,116,0.2)] hover:shadow-[0_6px_20px_rgba(212,165,116,0.3)] transition-shadow"
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white rounded-[14px] font-semibold shadow-[0_4px_16px_rgba(232,93,117,0.25)] hover:shadow-[0_6px_20px_rgba(232,93,117,0.35)] transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {isLoading ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                      />
-                    ) : (
-                      <>
-                        <Sparkles size={16} />
-                        登录
-                      </>
-                    )}
+                    登录
                   </motion.button>
-
-                  <div className="flex justify-between text-sm pt-2">
-                    <button
-                      onClick={() => { resetForm(); switchView("register", 1); }}
-                      className="text-[#E85D75] font-medium hover:underline"
+                  <div className="flex justify-between text-sm pt-1">
+                    <motion.button
+                      onClick={() => switchView("register")}
+                      className="text-[#D4A574] font-medium hover:bg-[rgba(212,165,116,0.08)] px-2 py-1 rounded-lg transition-colors"
+                      whileTap={{ scale: 0.98 }}
                     >
                       注册账号
-                    </button>
-                    <button
-                      onClick={() => { resetForm(); switchView("forgot", 1); }}
-                      className="text-[#A0A0B0] hover:text-[#6B6B7B]"
+                    </motion.button>
+                    <motion.button
+                      onClick={() => switchView("forgot")}
+                      className="text-[#8A8880] hover:text-[#E8E6E3] px-2 py-1 rounded-lg transition-colors"
+                      whileTap={{ scale: 0.98 }}
                     >
                       忘记密码？
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
               )}
 
+              {/* 注册表单 */}
               {view === "register" && (
-                <div className="space-y-3">
-                  <div className="text-center mb-4">
-                    <h2 className="text-[18px] font-semibold text-[#2D2D3A]">创建账号</h2>
-                    <p className="text-xs text-[#6B6B7B] mt-1">开启你的AI伴侣之旅</p>
-                  </div>
-
+                <motion.div
+                  key="register"
+                  variants={formVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="space-y-3"
+                >
                   <input
                     type="text"
                     placeholder="用户名（昵称）"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
+                    className={inputClass}
                   />
-
-                  <div className="relative">
-                    <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0]" />
-                    <input
-                      type="email"
-                      placeholder="邮箱"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0]" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="密码"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-10 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
-                    />
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-[#6B6B7B]"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-
+                  <input
+                    type="email"
+                    placeholder="邮箱"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                  />
+                  <input
+                    type="password"
+                    placeholder="密码"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                  />
                   <input
                     type="password"
                     placeholder="确认密码"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
+                    className={inputClass}
                   />
 
                   {/* 人机验证 */}
                   <motion.div
                     onClick={handleCaptchaClick}
-                    whileTap={{ scale: 0.98 }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-[14px] cursor-pointer transition-all duration-200 ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-[14px] cursor-pointer transition-all duration-200 border ${
                       captchaVerified
-                        ? "bg-[#4CAF7A]/10 border border-[#4CAF7A]/30"
-                        : "bg-[#F7F7F9] hover:bg-[#F0F0F3] border border-transparent"
+                        ? "bg-[rgba(107,155,154,0.08)] border-[rgba(107,155,154,0.3)]"
+                        : "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.06)]"
                     }`}
+                    whileTap={{ scale: 0.99 }}
                   >
-                    <motion.div
-                      animate={captchaVerified ? { scale: [1, 1.2, 1] } : {}}
+                    <div
                       className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                        captchaVerified ? "border-[#4CAF7A] bg-[#4CAF7A]" : "border-[#D1D5DB]"
+                        captchaVerified
+                          ? "border-[#6B9B9A] bg-[#6B9B9A]"
+                          : "border-[#5A5854]"
                       }`}
                     >
                       {captchaVerified && (
-                        <motion.svg
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="white"
-                          strokeWidth="3"
-                        >
-                          <motion.path
-                            d="M20 6L9 17l-5-5"
-                            initial={{ pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        </motion.svg>
+                        <Check size={12} strokeWidth={3} className="text-white" />
                       )}
-                    </motion.div>
-                    <span className={`text-sm ${captchaVerified ? "text-[#4CAF7A]" : "text-[#6B6B7B]"}`}>
+                    </div>
+                    <Shield
+                      size={16}
+                      className={
+                        captchaVerified ? "text-[#6B9B9A]" : "text-[#5A5854]"
+                      }
+                    />
+                    <span
+                      className={`text-sm ${
+                        captchaVerified
+                          ? "text-[#6B9B9A] font-medium"
+                          : "text-[#8A8880]"
+                      }`}
+                    >
                       {captchaVerified ? "验证通过" : "点击完成人机验证"}
                     </span>
                   </motion.div>
@@ -341,71 +352,79 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister, onFor
                       placeholder="邮箱验证码"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
+                      className={`${inputClass} flex-1`}
                     />
                     <motion.button
                       onClick={handleSendCode}
                       disabled={countdown > 0 || !email}
-                      whileTap={{ scale: 0.95 }}
-                      className="px-4 py-3 bg-[#FCE4EC] text-[#E85D75] rounded-[14px] text-sm font-semibold whitespace-nowrap disabled:opacity-40 transition-all"
+                      className="px-4 py-3 bg-[rgba(212,165,116,0.12)] text-[#D4A574] rounded-[14px] text-sm font-semibold disabled:opacity-50 whitespace-nowrap transition-colors hover:bg-[rgba(212,165,116,0.18)] border border-[rgba(212,165,116,0.15)]"
+                      whileTap={{ scale: 0.98 }}
                     >
                       {countdown > 0 ? `${countdown}s` : "获取验证码"}
                     </motion.button>
                   </div>
 
                   <motion.button
-                    onClick={handleRegisterClick}
+                    onClick={handleRegister}
+                    className="w-full py-3 bg-gradient-to-r from-[#D4A574] to-[#C9956A] text-[#0C0C14] rounded-[14px] font-semibold text-sm shadow-[0_4px_16px_rgba(212,165,116,0.2)] hover:shadow-[0_6px_20px_rgba(212,165,116,0.3)] transition-shadow"
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white rounded-[14px] font-semibold shadow-[0_4px_16px_rgba(232,93,117,0.25)] transition-all duration-200"
                   >
                     注册
                   </motion.button>
-                  <button
-                    onClick={() => { resetForm(); switchView("login", -1); }}
-                    className="w-full text-sm text-[#E85D75] font-medium hover:underline"
-                  >
-                    已有账号？去登录
-                  </button>
-                </div>
+                  <div className="text-center pt-1">
+                    <motion.button
+                      onClick={() => switchView("login")}
+                      className="text-sm text-[#8A8880] font-medium hover:text-[#D4A574] hover:bg-[rgba(212,165,116,0.08)] px-3 py-1.5 rounded-lg transition-colors"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      已有账号？去登录
+                    </motion.button>
+                  </div>
+                </motion.div>
               )}
 
+              {/* 忘记密码 */}
               {view === "forgot" && (
-                <div className="space-y-4">
-                  <div className="text-center mb-4">
-                    <h2 className="text-[18px] font-semibold text-[#2D2D3A]">重置密码</h2>
-                    <p className="text-xs text-[#6B6B7B] mt-1">输入绑定的邮箱，我们将发送重置链接</p>
-                  </div>
-
-                  <div className="relative">
-                    <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0]" />
-                    <input
-                      type="email"
-                      placeholder="邮箱"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
-                    />
-                  </div>
-
+                <motion.div
+                  key="forgot"
+                  variants={formVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="space-y-4"
+                >
+                  <p className="text-[13px] text-[#8A8880] text-center leading-relaxed">
+                    输入绑定的邮箱，我们将发送重置链接
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="邮箱"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                  />
                   <motion.button
-                    onClick={handleForgotClick}
+                    onClick={handleForgotPassword}
+                    className="w-full py-3 bg-gradient-to-r from-[#D4A574] to-[#C9956A] text-[#0C0C14] rounded-[14px] font-semibold text-sm shadow-[0_4px_16px_rgba(212,165,116,0.2)] hover:shadow-[0_6px_20px_rgba(212,165,116,0.3)] transition-shadow"
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] text-white rounded-[14px] font-semibold shadow-[0_4px_16px_rgba(232,93,117,0.25)] transition-all duration-200"
                   >
                     发送重置邮件
                   </motion.button>
-                  <button
-                    onClick={() => { resetForm(); switchView("login", -1); }}
-                    className="w-full text-sm text-[#E85D75] font-medium hover:underline"
-                  >
-                    返回登录
-                  </button>
-                </div>
+                  <div className="text-center pt-1">
+                    <motion.button
+                      onClick={() => switchView("login")}
+                      className="text-sm text-[#8A8880] font-medium hover:text-[#D4A574] hover:bg-[rgba(212,165,116,0.08)] px-3 py-1.5 rounded-lg transition-colors"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      返回登录
+                    </motion.button>
+                  </div>
+                </motion.div>
               )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
