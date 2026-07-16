@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MessageSquare, Users, Palette, Sparkles, User, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Users, Palette, Sparkles, User } from "lucide-react";
 import LoginModal from "../components/LoginModal";
 import ChatTab from "../components/tabs/ChatTab";
 import RelationshipTab from "../components/tabs/RelationshipTab";
@@ -18,10 +18,10 @@ const tabs = [
   { id: "profile", label: "我的", icon: User, requireAuth: false },
 ];
 
-const tabVariants = {
-  initial: { opacity: 0, y: 20 },
+const tabContentVariants = {
+  initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 },
+  exit: { opacity: 0, y: -8 },
 };
 
 export default function Home() {
@@ -31,6 +31,7 @@ export default function Home() {
   const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {
+    // 检查是否已登录
     const token = localStorage.getItem("aria_token");
     const user = localStorage.getItem("aria_user");
     if (token && user) {
@@ -96,6 +97,7 @@ export default function Home() {
   };
 
   const handleForgotPassword = async (email: string) => {
+    // 忘记密码逻辑
     alert("重置邮件已发送到 " + email);
   };
 
@@ -108,80 +110,143 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] max-w-md mx-auto bg-[#FFF8F5]">
-      <main className="flex-1 overflow-y-auto scrollbar-thin relative">
+    <div className="flex flex-col h-[100dvh] max-w-md mx-auto bg-[#0C0C14]">
+      {/* 内容区域 */}
+      <main className="flex-1 overflow-y-auto scrollbar-thin">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            variants={tabVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="h-full"
-          >
-            {activeTab === "chat" && <ChatTab />}
-            {activeTab === "relationship" && <RelationshipTab />}
-            {activeTab === "dressup" && <DressUpTab />}
-            {activeTab === "dynamic" && <DynamicTab />}
-            {activeTab === "profile" && (
+          {activeTab === "chat" && (
+            <motion.div
+              key="chat"
+              variants={tabContentVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="h-full"
+            >
+              <ChatTab />
+            </motion.div>
+          )}
+          {activeTab === "relationship" && (
+            <motion.div
+              key="relationship"
+              variants={tabContentVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="h-full"
+            >
+              <RelationshipTab />
+            </motion.div>
+          )}
+          {activeTab === "dressup" && (
+            <motion.div
+              key="dressup"
+              variants={tabContentVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="h-full"
+            >
+              <DressUpTab />
+            </motion.div>
+          )}
+          {activeTab === "dynamic" && (
+            <motion.div
+              key="dynamic"
+              variants={tabContentVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="h-full"
+            >
+              <DynamicTab />
+            </motion.div>
+          )}
+          {activeTab === "profile" && (
+            <motion.div
+              key="profile"
+              variants={tabContentVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="h-full"
+            >
               <ProfileTab
                 isLoggedIn={isLoggedIn}
                 userInfo={userInfo}
                 onLogin={() => setShowLoginModal(true)}
                 onLogout={handleLogout}
               />
-            )}
-          </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
-      <nav className="flex h-[60px] bg-white/72 backdrop-blur-[20px] saturate-[180%] border-t border-[rgba(0,0,0,0.05)] z-50 pb-safe shrink-0 relative">
+      {/* 底部导航栏 - V2 深色玻璃拟态 */}
+      <nav
+        className="glass-nav flex h-[60px] z-50"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           const isLocked = tab.requireAuth && !isLoggedIn;
           return (
-            <button
+            <motion.button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
-                isActive ? "text-[#E85D75]" : "text-[#A0A0B0] hover:text-[#6B6B7B]"
+              whileTap={{ scale: 0.9 }}
+              transition={{ duration: 0.15, ease: [0.34, 1.56, 0.64, 1] }}
+              className={`flex-1 flex flex-col items-center justify-center relative ${
+                isActive ? "text-[#D4A574]" : "text-[#5A5854]"
               }`}
             >
+              {/* 激活指示器 - 顶部琥珀渐变横条 */}
               {isActive && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute top-0 w-8 h-[3px] bg-gradient-to-r from-[#E85D75] to-[#F28C8C] rounded-full"
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  className="absolute top-0 h-[3px] w-6 rounded-full bg-gradient-to-r from-[#D4A574] to-[#C9956A]"
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                  }}
                 />
               )}
-              <motion.div
-                whileTap={{ scale: 0.85 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <Icon
-                  size={22}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                />
-              </motion.div>
+              <div className="relative">
+                <motion.div
+                  animate={isActive ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                  transition={{
+                    duration: 0.2,
+                    ease: [0.34, 1.56, 0.64, 1],
+                  }}
+                >
+                  <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                </motion.div>
+                {isLocked && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#5A5854] rounded-full flex items-center justify-center">
+                    <Lock size={8} className="text-[#0C0C14]" />
+                  </div>
+                )}
+              </div>
               <motion.span
-                className="text-[10px] font-medium"
-                animate={{ opacity: isActive ? 1 : 0.7 }}
+                className="text-[10px] mt-0.5 font-medium"
+                animate={{ opacity: isActive ? 1 : 0.6 }}
                 transition={{ duration: 0.15 }}
               >
                 {tab.label}
               </motion.span>
-              {isLocked && (
-                <div className="absolute top-1 right-3 w-3 h-3 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-[6px] text-white">🔒</span>
-                </div>
-              )}
-            </button>
+            </motion.button>
           );
         })}
       </nav>
 
+      {/* 登录弹窗 */}
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
