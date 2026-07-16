@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronLeft, Camera, User, Check } from "lucide-react";
+import { ChevronLeft, Camera, User } from "lucide-react";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -33,32 +33,49 @@ export default function EditProfilePage() {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
+    hidden: { opacity: 0, y: 16 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+    },
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8F5]">
-      {/* 顶部导航 */}
-      <div className="sticky top-0 z-10 bg-white/72 backdrop-blur-[20px] saturate-[180%] border-b border-[rgba(0,0,0,0.05)] px-4 py-3 flex items-center justify-between">
+    <div
+      className="min-h-screen max-w-md mx-auto"
+      style={{ background: "#0C0C14" }}
+    >
+      {/* 顶部导航 - glass-nav */}
+      <div
+        className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between"
+        style={{
+          backdropFilter: "blur(20px) saturate(180%)",
+          background: "rgba(12, 12, 20, 0.85)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+        }}
+      >
         <motion.button
           onClick={() => router.push("/")}
+          className="text-[#8A8880] p-1"
           whileTap={{ scale: 0.9 }}
-          className="text-[#6B6B7B] hover:text-[#2D2D3A] p-1 -ml-1"
         >
           <ChevronLeft size={24} />
         </motion.button>
-        <span className="font-bold text-[#2D2D3A]">编辑资料</span>
+        <span className="font-semibold text-[#E8E6E3]">编辑资料</span>
         <motion.button
           onClick={handleSave}
-          whileTap={{ scale: 0.9 }}
-          className="text-[#E85D75] font-semibold text-sm p-1 -mr-1 flex items-center gap-1"
+          className="text-sm font-semibold px-3 py-1.5 rounded-[10px] text-[#0C0C14]"
+          style={{ background: "linear-gradient(135deg, #D4A574, #C9956A)" }}
+          whileTap={{ scale: 0.95 }}
         >
-          <Check size={18} />
           保存
         </motion.button>
       </div>
@@ -67,26 +84,54 @@ export default function EditProfilePage() {
         className="p-4 space-y-3"
         variants={containerVariants}
         initial="hidden"
-        animate="show"
+        animate="visible"
       >
         {/* 头像 */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#6B6B7B]">头像</span>
+            <span className="text-sm text-[#8A8880]">头像</span>
             <div className="relative">
               {avatar ? (
-                <img src={avatar} alt="头像" className="w-[72px] h-[72px] rounded-full object-cover border-2 border-white shadow-md" />
+                <img
+                  src={avatar}
+                  alt="头像"
+                  className="w-[72px] h-[72px] rounded-full object-cover"
+                  style={{ border: "2px solid rgba(212, 165, 116, 0.3)" }}
+                />
               ) : (
-                <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-[#E85D75] to-[#F28C8C] flex items-center justify-center border-2 border-white shadow-md">
-                  <User size={28} className="text-white" />
+                <div
+                  className="w-[72px] h-[72px] rounded-full flex items-center justify-center"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.06)",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(212, 165, 116, 0.15)",
+                  }}
+                >
+                  <User size={30} className="text-[#D4A574]" />
                 </div>
               )}
-              <label className="absolute bottom-0 right-0 w-7 h-7 bg-gradient-to-br from-[#E85D75] to-[#F28C8C] rounded-full flex items-center justify-center cursor-pointer border-2 border-white shadow-md">
-                <Camera size={14} className="text-white" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              <label
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, #D4A574, #C9956A)",
+                  boxShadow: "0 2px 6px rgba(212, 165, 116, 0.3)",
+                }}
+              >
+                <Camera size={14} className="text-[#0C0C14]" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
               </label>
             </div>
           </div>
@@ -95,28 +140,39 @@ export default function EditProfilePage() {
         {/* Aria号 */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#6B6B7B]">Aria号</span>
-            <span className="text-sm text-[#2D2D3A] font-medium">001</span>
+            <span className="text-sm text-[#8A8880]">Aria号</span>
+            <span className="text-sm text-[#E8E6E3] font-medium">001</span>
           </div>
-          <p className="text-xs text-[#A0A0B0] mt-1">管理员账号</p>
+          <p className="text-[11px] text-[#5A5854] mt-1">管理员账号</p>
         </motion.div>
 
         {/* 昵称 */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#6B6B7B]">昵称</span>
+            <span className="text-sm text-[#8A8880]">昵称</span>
             <input
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="请输入昵称"
-              className="text-sm text-right outline-none bg-transparent text-[#2D2D3A] placeholder-[#A0A0B0] w-1/2"
+              className="text-sm outline-none text-right text-[#E8E6E3] placeholder-[#5A5854] bg-transparent"
+              style={{ width: "60%" }}
             />
           </div>
         </motion.div>
@@ -124,16 +180,22 @@ export default function EditProfilePage() {
         {/* 个性签名 */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#6B6B7B]">个性签名</span>
+            <span className="text-sm text-[#8A8880]">个性签名</span>
             <input
               type="text"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="写一句话介绍自己"
-              className="text-sm text-right outline-none bg-transparent text-[#2D2D3A] placeholder-[#A0A0B0] w-1/2"
+              className="text-sm outline-none text-right text-[#E8E6E3] placeholder-[#5A5854] bg-transparent"
+              style={{ width: "60%" }}
             />
           </div>
         </motion.div>
@@ -141,19 +203,25 @@ export default function EditProfilePage() {
         {/* 性别 */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#6B6B7B]">性别</span>
+            <span className="text-sm text-[#8A8880]">性别</span>
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value)}
-              className="text-sm outline-none bg-transparent text-[#2D2D3A] text-right"
+              className="text-sm outline-none bg-transparent text-[#E8E6E3] font-medium cursor-pointer text-right"
+              style={{ background: "transparent" }}
             >
-              <option value="">未设置</option>
-              <option value="male">男</option>
-              <option value="female">女</option>
-              <option value="other">其他</option>
+              <option value="" style={{ background: "#1A1A24" }}>未设置</option>
+              <option value="male" style={{ background: "#1A1A24" }}>男</option>
+              <option value="female" style={{ background: "#1A1A24" }}>女</option>
+              <option value="other" style={{ background: "#1A1A24" }}>其他</option>
             </select>
           </div>
         </motion.div>
@@ -161,15 +229,23 @@ export default function EditProfilePage() {
         {/* 生日 */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-[20px] border border-[rgba(0,0,0,0.03)] p-4 shadow-[0_1px_3px_rgba(45,45,58,0.06)]"
+          className="rounded-[20px] p-4"
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+          }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#6B6B7B]">生日</span>
+            <span className="text-sm text-[#8A8880]">生日</span>
             <input
               type="date"
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
-              className="text-sm outline-none bg-transparent text-[#2D2D3A]"
+              className="text-sm outline-none bg-transparent text-[#E8E6E3] text-right"
+              style={{
+                colorScheme: "dark",
+              }}
             />
           </div>
         </motion.div>
