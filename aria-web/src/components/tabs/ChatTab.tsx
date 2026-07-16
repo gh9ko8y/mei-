@@ -2,10 +2,19 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Send, Image, Smile, MoreHorizontal, Search, X } from "lucide-react";
+import {
+  ChevronLeft,
+  Send,
+  Image,
+  Smile,
+  MoreHorizontal,
+  Search,
+  User,
+} from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://8.130.32.219";
 
+// 聊天列表项
 interface ChatItem {
   id: string;
   name: string;
@@ -15,42 +24,85 @@ interface ChatItem {
   unread: number;
 }
 
-interface ChatMessage {
-  id: number;
-  role: "user" | "assistant";
-  content: string;
-  time: string;
-}
-
-const chatList: ChatItem[] = [
-  { id: "ai", name: "AI伴侣", avatar: "🥰", lastMessage: "今天天气真好~", time: "刚刚", unread: 0 },
-  { id: "ai2", name: "小暖", avatar: "☀️", lastMessage: "记得多喝水哦", time: "5分钟前", unread: 2 },
-  { id: "ai3", name: "知心姐姐", avatar: "🌙", lastMessage: "我在听，你说吧", time: "1小时前", unread: 0 },
-  { id: "ai4", name: "开心果", avatar: "😄", lastMessage: "哈哈哈太好笑了", time: "昨天", unread: 0 },
-  { id: "ai5", name: "温柔学姐", avatar: "🌸", lastMessage: "加油，你可以的！", time: "昨天", unread: 1 },
-];
-
-const containerVariants = {
+// 动画配置
+const listContainer = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.05 },
+    transition: {
+      staggerChildren: 0.05,
+    },
   },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } },
+const listItem = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
+
+const userMessageVariants = {
+  hidden: { opacity: 0, x: 20, scale: 0.95 },
+  show: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
+
+const aiMessageVariants = {
+  hidden: { opacity: 0, x: -20, scale: 0.95 },
+  show: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
+
+const typingDot = {
+  animate: {
+    y: [0, -6, 0],
+    transition: {
+      duration: 0.6,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
 };
 
 export default function ChatTab() {
   const [showChat, setShowChat] = useState(false);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 聊天列表 — 移除 emoji，使用名称代替
+  const chatList: ChatItem[] = [
+    {
+      id: "ai",
+      name: "AI伴侣",
+      avatar: "",
+      lastMessage: "今天天气真好~",
+      time: "刚刚",
+      unread: 0,
+    },
+  ];
 
   useEffect(() => {
     if (showChat) {
@@ -82,11 +134,11 @@ export default function ChatTab() {
     setInputText("");
     setIsLoading(true);
 
-    const userMsg: ChatMessage = {
+    const userMsg = {
       id: Date.now(),
       role: "user",
       content: text,
-      time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
+      valid_start: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
 
@@ -102,11 +154,11 @@ export default function ChatTab() {
       });
       const data = await res.json();
       if (data.reply) {
-        const aiMsg: ChatMessage = {
+        const aiMsg = {
           id: data.event_id,
           role: "assistant",
           content: data.reply,
-          time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
+          valid_start: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, aiMsg]);
       }
@@ -123,177 +175,204 @@ export default function ChatTab() {
     return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const filteredChatList = chatList.filter((chat) =>
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Chat list view
+  // 聊天列表视图
   if (!showChat) {
     return (
-      <div className="flex flex-col h-[calc(100dvh-60px)] bg-[#FFF8F5]">
-        <div className="px-4 pt-4 pb-2">
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0A0B0]" />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col h-[calc(100vh-60px)] bg-[#0C0C14]"
+      >
+        {/* 顶部搜索栏 */}
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-[rgba(255,255,255,0.06)] rounded-[14px] border border-[rgba(255,255,255,0.06)] transition-all duration-200 focus-within:border-[#D4A574] focus-within:bg-[rgba(255,255,255,0.08)] focus-within:shadow-[0_0_0_3px_rgba(212,165,116,0.1)]">
+            <Search size={16} className="text-[#5A5854]" />
             <input
               type="text"
               placeholder="搜索"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-10 py-2.5 bg-[#F7F7F9] rounded-[14px] text-sm outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] focus:border-[#E85D75] border border-transparent"
+              className="flex-1 bg-transparent text-sm outline-none text-[#E8E6E3] placeholder:text-[#5A5854]"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-[#6B6B7B]"
-              >
-                <X size={16} />
-              </button>
-            )}
           </div>
         </div>
 
+        {/* 聊天列表 */}
         <motion.div
-          className="flex-1 overflow-y-auto scrollbar-thin"
-          variants={containerVariants}
+          className="flex-1 overflow-y-auto"
+          variants={listContainer}
           initial="hidden"
           animate="show"
         >
-          {filteredChatList.map((chat) => (
+          {chatList.map((chat) => (
             <motion.div
               key={chat.id}
-              variants={itemVariants}
-              whileHover={{ backgroundColor: "rgba(232, 93, 117, 0.04)" }}
-              whileTap={{ scale: 0.99 }}
+              variants={listItem}
               onClick={() => handleChatClick(chat)}
-              className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-[rgba(255,255,255,0.03)] cursor-pointer transition-colors duration-150 border-b border-[rgba(255,255,255,0.04)]"
+              whileTap={{ scale: 0.98 }}
             >
-              <div className="relative shrink-0">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#E85D75] to-[#F28C8C] flex items-center justify-center text-xl shadow-md">
-                  {chat.avatar}
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4A574] to-[#C9956A] flex items-center justify-center shadow-[0_2px_8px_rgba(212,165,116,0.25)]">
+                  <User size={20} className="text-[#0C0C14]" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#4CAF7A] rounded-full border-2 border-white" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#6B9B9A] rounded-full border-2 border-[#0C0C14]"></div>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-sm text-[#2D2D3A]">{chat.name}</span>
-                  <span className="text-[11px] text-[#A0A0B0]">{chat.time}</span>
+                  <span className="font-semibold text-sm text-[#E8E6E3]">
+                    {chat.name}
+                  </span>
+                  <span className="text-[11px] text-[#5A5854] font-medium">
+                    {chat.time}
+                  </span>
                 </div>
-                <p className="text-xs text-[#6B6B7B] truncate mt-0.5">{chat.lastMessage}</p>
+                <p className="text-[13px] text-[#8A8880] truncate">
+                  {chat.lastMessage}
+                </p>
               </div>
               {chat.unread > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  className="shrink-0 min-w-[20px] h-5 bg-gradient-to-r from-[#E85D75] to-[#F28C8C] rounded-full flex items-center justify-center px-1.5"
-                >
-                  <span className="text-[10px] text-white font-bold">{chat.unread}</span>
-                </motion.div>
+                <div className="min-w-[18px] h-[18px] rounded-full bg-gradient-to-r from-[#D4A574] to-[#C9956A] flex items-center justify-center px-1">
+                  <span className="text-[10px] text-[#0C0C14] font-semibold">
+                    {chat.unread}
+                  </span>
+                </div>
               )}
             </motion.div>
           ))}
         </motion.div>
-      </div>
+      </motion.div>
     );
   }
 
-  // Chat detail view
+  // 聊天界面
   return (
-    <div className="flex flex-col h-[calc(100dvh-60px)] bg-[#FFF8F5]">
-      <div className="sticky top-0 z-10 bg-white/72 backdrop-blur-[20px] saturate-[180%] border-b border-[rgba(0,0,0,0.05)] px-4 py-3 flex items-center gap-3">
-        <motion.button
-          onClick={() => setShowChat(false)}
-          className="text-[#6B6B7B] hover:text-[#2D2D3A] p-1 -ml-1"
-          whileTap={{ scale: 0.9 }}
-        >
-          <ChevronLeft size={24} />
-        </motion.button>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#E85D75] to-[#F28C8C] flex items-center justify-center text-sm shadow-sm">
-          {selectedChat?.avatar}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col h-[calc(100vh-60px)] bg-[#0C0C14]"
+    >
+      {/* 顶部栏 — glass-nav 效果 */}
+      <div className="sticky top-0 z-10 backdrop-blur-[24px] bg-[rgba(12,12,20,0.72)] border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
+        <div className="flex items-center gap-3">
+          <motion.button
+            onClick={() => setShowChat(false)}
+            className="text-[#8A8880] hover:text-[#E8E6E3] transition-colors p-1"
+            whileTap={{ scale: 0.9 }}
+          >
+            <ChevronLeft size={24} />
+          </motion.button>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D4A574] to-[#C9956A] flex items-center justify-center shadow-[0_2px_6px_rgba(212,165,116,0.25)]">
+            <User size={16} className="text-[#0C0C14]" />
+          </div>
+          <div className="flex-1">
+            <span className="font-semibold text-sm text-[#E8E6E3]">
+              {selectedChat?.name}
+            </span>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#6B9B9A]"></div>
+              <span className="text-[10px] text-[#6B9B9A] font-medium">
+                在线
+              </span>
+            </div>
+          </div>
+          <motion.button
+            className="text-[#8A8880] hover:text-[#E8E6E3] transition-colors p-1"
+            whileTap={{ scale: 0.9 }}
+          >
+            <MoreHorizontal size={20} />
+          </motion.button>
         </div>
-        <div className="flex-1 min-w-0">
-          <span className="font-semibold text-sm text-[#2D2D3A] block">{selectedChat?.name}</span>
-          <span className="text-[11px] text-[#4CAF7A]">在线</span>
-        </div>
-        <button className="text-[#A0A0B0] hover:text-[#6B6B7B] p-1">
-          <MoreHorizontal size={20} />
-        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-thin">
+      {/* 消息列表 */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
-              initial={{
-                opacity: 0,
-                x: msg.role === "user" ? 20 : -20,
-                scale: 0.95,
-              }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              variants={
+                msg.role === "user" ? userMessageVariants : aiMessageVariants
+              }
+              initial="hidden"
+              animate="show"
+              layout
             >
-              <div className="max-w-[80%] space-y-1">
+              <div className="max-w-[80%]">
                 <div
                   className={`px-3.5 py-2.5 text-[15px] leading-relaxed ${
                     msg.role === "user"
-                      ? "bg-gradient-to-br from-[#E85D75] to-[#F28C8C] text-white rounded-[20px] rounded-br-[4px] shadow-[0_2px_8px_rgba(232,93,117,0.25)]"
-                      : "bg-white text-[#2D2D3A] rounded-[20px] rounded-bl-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.06)] border border-[rgba(0,0,0,0.03)]"
+                      ? "bg-[rgba(212,165,116,0.12)] text-[#E8C9A0] rounded-[16px_16px_4px_16px] border border-[rgba(212,165,116,0.15)]"
+                      : "bg-[rgba(255,255,255,0.04)] text-[#E8E6E3] rounded-[16px_16px_16px_4px] border border-[rgba(255,255,255,0.06)]"
                   }`}
                 >
                   {msg.content}
                 </div>
-                <p className={`text-[10px] text-[#A0A0B0] ${msg.role === "user" ? "text-right" : "text-left"}`}>
-                  {msg.time ? msg.time : formatTime(msg.time)}
-                </p>
+                <div
+                  className={`text-[10px] text-[#5A5854] mt-1 ${
+                    msg.role === "user" ? "text-right" : "text-left"
+                  }`}
+                >
+                  {formatTime(msg.valid_start)}
+                </div>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex justify-start"
-          >
-            <div className="bg-white rounded-[20px] rounded-bl-[4px] shadow-[0_1px_4px_rgba(0,0,0,0.06)] border border-[rgba(0,0,0,0.03)] px-4 py-3 flex items-center gap-1.5">
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                className="w-2 h-2 bg-[#E85D75] rounded-full"
-              />
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
-                className="w-2 h-2 bg-[#E85D75] rounded-full opacity-60"
-              />
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
-                className="w-2 h-2 bg-[#E85D75] rounded-full opacity-30"
-              />
-            </div>
-          </motion.div>
-        )}
+        {/* 正在输入 */}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              className="flex justify-start"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <div className="bg-[rgba(255,255,255,0.04)] rounded-[16px_16px_16px_4px] border border-[rgba(255,255,255,0.06)] px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-[#D4A574]"
+                    variants={typingDot}
+                    animate="animate"
+                    transition={{ delay: 0 }}
+                  />
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-[#D4A574]"
+                    variants={typingDot}
+                    animate="animate"
+                    transition={{ delay: 0.15 }}
+                  />
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-[#D4A574]"
+                    variants={typingDot}
+                    animate="animate"
+                    transition={{ delay: 0.3 }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="shrink-0 bg-white/72 backdrop-blur-[20px] saturate-[180%] border-t border-[rgba(0,0,0,0.05)] px-3 py-2">
+      {/* 输入栏 — glass-nav 效果 */}
+      <div className="sticky bottom-0 backdrop-blur-[24px] bg-[rgba(12,12,20,0.72)] border-t border-[rgba(255,255,255,0.06)] px-3 py-2.5">
         <div className="flex items-center gap-2">
           <motion.button
+            className="p-2 text-[#5A5854] hover:text-[#D4A574] transition-colors"
             whileTap={{ scale: 0.9 }}
-            className="p-2 text-[#A0A0B0] hover:text-[#E85D75] transition-colors"
-          >
-            <Image size={20} />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className="p-2 text-[#A0A0B0] hover:text-[#E85D75] transition-colors"
           >
             <Smile size={20} />
+          </motion.button>
+          <motion.button
+            className="p-2 text-[#5A5854] hover:text-[#D4A574] transition-colors"
+            whileTap={{ scale: 0.9 }}
+          >
+            <Image size={20} />
           </motion.button>
           <input
             type="text"
@@ -302,22 +381,19 @@ export default function ChatTab() {
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="说点什么..."
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 bg-[#F7F7F9] rounded-full text-[15px] outline-none transition-all duration-200 focus:bg-white focus:ring-2 focus:ring-[rgba(232,93,117,0.15)] disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 bg-[rgba(255,255,255,0.06)] rounded-[14px] text-[15px] outline-none text-[#E8E6E3] placeholder:text-[#5A5854] border border-[rgba(255,255,255,0.06)] transition-all duration-200 focus:border-[#D4A574] focus:bg-[rgba(255,255,255,0.08)] focus:shadow-[0_0_0_3px_rgba(212,165,116,0.1)] disabled:opacity-50"
           />
           <motion.button
             onClick={handleSend}
             disabled={isLoading || !inputText.trim()}
-            whileTap={{ scale: 0.9 }}
-            className={`p-2.5 rounded-full transition-all duration-200 ${
-              inputText.trim()
-                ? "bg-gradient-to-br from-[#E85D75] to-[#F28C8C] text-white shadow-[0_2px_8px_rgba(232,93,117,0.3)]"
-                : "bg-[#F7F7F9] text-[#A0A0B0]"
-            } disabled:opacity-50`}
+            className="p-2.5 bg-gradient-to-r from-[#D4A574] to-[#C9956A] text-[#0C0C14] rounded-full shadow-[0_2px_8px_rgba(212,165,116,0.25)] hover:shadow-[0_4px_12px_rgba(212,165,116,0.35)] disabled:opacity-40 disabled:shadow-none transition-shadow"
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.05 }}
           >
             <Send size={18} />
           </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
